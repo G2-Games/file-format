@@ -145,7 +145,7 @@ macro_rules! formats {
                 }
             }
 
-            /// Converts the full name of a file format into the enum representation
+            /// Converts the full name of a file format into the enum representation.
             ///
             /// # Examples
             ///
@@ -155,19 +155,21 @@ macro_rules! formats {
             /// use file_format::{FileFormat, Kind};
             ///
             /// let fmt = FileFormat::Mpeg12AudioLayer3;
-            /// let name = fmt.name();
-            /// assert_eq!(name, "MPEG-1/2 Audio Layer 3");
-            /// assert_eq!(FileFormat::from_name(name), Some(fmt));
+            /// assert_eq!(fmt.name(), "MPEG-1/2 Audio Layer 3");
+            /// assert_eq!(FileFormat::from_name(fmt.name()), Some(fmt));
             /// ```
             pub fn from_name(name: &str) -> Option<crate::FileFormat> {
-                static NAME: std::sync::OnceLock<std::collections::HashMap<&'static str,crate::FileFormat>> = std::sync::OnceLock::new();
-                NAME.get_or_init(|| -> std::collections::HashMap<&'static str,crate::FileFormat> {
+                static NAME: std::sync::OnceLock<std::collections::HashMap<&str, crate::FileFormat>> =
+                    std::sync::OnceLock::new();
+                NAME.get_or_init(|| -> std::collections::HashMap<&str, crate::FileFormat> {
                     let mut map = std::collections::HashMap::new();
                     $(
                         map.insert($name, Self::$format);
                     )*
                     map
-                }).get(name).cloned()
+                })
+                .get(name)
+                .cloned()
             }
         }
     };
