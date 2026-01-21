@@ -91,7 +91,7 @@ signatures! {
 
     // 30 bytes
     format = FlexibleImageTransportSystem
-    value =b"SIMPLE  =                    T"
+    value = b"SIMPLE  =                    T"
 
     // 29 bytes
     format = NeoGeoPocketColorRom
