@@ -2423,6 +2423,13 @@ formats! {
     extension = "sldprt"
     kind = Model
 
+    format = SonyAlphaRaw
+    name = "Sony Alpha Raw"
+    short_name = "ARW"
+    media_type = "image/x-sony-arw"
+    extension = "arw"
+    kind = Image
+
     format = SonyDsdStreamFile
     name = "Sony DSD Stream File"
     short_name = "DSF"

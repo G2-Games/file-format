@@ -1,3 +1,9 @@
+# Version 0.29.0 (unreleased)
+
+## New formats support
+
+- Sony Alpha Raw (ARW)
+
 # Version 0.28.0 (2025-08-07)
 
 ## New formats support

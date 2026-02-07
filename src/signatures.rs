@@ -156,6 +156,9 @@ signatures! {
     value = b"#!/usr/bin/python"
 
     // 22 bytes
+    format = SonyAlphaRaw
+    value = b"\x49\x49\x2A\x00", b"\x08\x00\x00\x00" offset = 4, b"\xFE\x00\x04\x00\x01\x00\x00\x00\x01\x00\x00\x00" offset = 10
+
     format = CreativeVoice
     value = b"Creative Voice File\x1A\x1A\0"
 

@@ -339,6 +339,7 @@ identification.
 - Silicon Graphics Image (SGI)
 - Sketch
 - Sketch 43
+- Sony Alpha Raw (ARW)
 - StarDraw (SDA)
 - Sun XML Draw (SXD)
 - Sun XML Draw Template (STD)
