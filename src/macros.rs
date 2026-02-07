@@ -145,6 +145,29 @@ macro_rules! formats {
                 }
             }
 
+            /// Returns all file formats of the given [`Kind`](crate::Kind).
+            ///
+            /// # Examples
+            ///
+            /// Basic usage:
+            ///
+            /// ```
+            /// use file_format::{FileFormat, Kind};
+            ///
+            /// let formats = FileFormat::from_kind(Kind::Image);
+            /// assert!(formats.contains(&FileFormat::PortableNetworkGraphics));
+            /// assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+            ///```
+            pub fn from_kind(kind: crate::Kind) -> Vec<crate::FileFormat> {
+                let mut formats = Vec::new();
+                $(
+                    if crate::Kind::$kind == kind {
+                        formats.push(Self::$format);
+                    }
+                )*
+                formats
+            }
+
             /// Converts the full name of a file format into the enum representation.
             ///
             /// # Examples

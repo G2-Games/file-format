@@ -1,5 +1,9 @@
 # Version 0.29.0 (unreleased)
 
+## API
+
+- Added `FileFormat::from_kind` method to retrieve all file formats of a given `Kind`
+
 ## New formats support
 
 - Sony Alpha Raw (ARW)
