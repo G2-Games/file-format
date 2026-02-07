@@ -3,6 +3,8 @@
 ## API
 
 - Added `FileFormat::from_kind` method to retrieve all file formats of a given `Kind`
+- Added `FileFormat::from_extension` method to retrieve all file formats for a given extension
+- Added `FileFormat::from_media_type` method to retrieve all file formats for a given media type
 
 ## New formats support
 

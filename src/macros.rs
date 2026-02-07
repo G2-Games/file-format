@@ -194,6 +194,66 @@ macro_rules! formats {
                 .get(name)
                 .cloned()
             }
+
+            /// Returns all file formats associated with the given extension.
+            ///
+            /// Note: multiple file formats can share the same extension.
+            ///
+            /// # Examples
+            ///
+            /// Basic usage:
+            ///
+            /// ```
+            /// use file_format::FileFormat;
+            ///
+            /// let formats = FileFormat::from_extension("jpg");
+            /// assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+            ///```
+            pub fn from_extension(extension: &str) -> Vec<crate::FileFormat> {
+                static EXTENSION: std::sync::OnceLock<std::collections::HashMap<&str, Vec<crate::FileFormat>>> =
+                    std::sync::OnceLock::new();
+                EXTENSION.get_or_init(|| -> std::collections::HashMap<&str, Vec<crate::FileFormat>> {
+                    let mut map: std::collections::HashMap<&str, Vec<crate::FileFormat>> =
+                        std::collections::HashMap::new();
+                    $(
+                        map.entry($extension).or_default().push(Self::$format);
+                    )*
+                    map
+                })
+                .get(extension)
+                .cloned()
+                .unwrap_or_default()
+            }
+
+            /// Returns all file formats associated with the given media type.
+            ///
+            /// Note: multiple file formats can share the same media type.
+            ///
+            /// # Examples
+            ///
+            /// Basic usage:
+            ///
+            /// ```
+            /// use file_format::FileFormat;
+            ///
+            /// let formats = FileFormat::from_media_type("image/jpeg");
+            /// assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+            ///```
+            pub fn from_media_type(media_type: &str) -> Vec<crate::FileFormat> {
+                static MEDIA_TYPE: std::sync::OnceLock<std::collections::HashMap<&str, Vec<crate::FileFormat>>> =
+                    std::sync::OnceLock::new();
+                MEDIA_TYPE.get_or_init(|| -> std::collections::HashMap<&str, Vec<crate::FileFormat>> {
+                    let mut map: std::collections::HashMap<&str, Vec<crate::FileFormat>> =
+                        std::collections::HashMap::new();
+                    $(
+                        map.entry($media_type).or_default().push(Self::$format);
+                    )*
+                    map
+                })
+                .get(media_type)
+                .cloned()
+                .unwrap_or_default()
+            }
         }
     };
 }
