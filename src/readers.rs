@@ -2,6 +2,21 @@
 
 use std::io::*;
 
+/// Converts a `u64` value to `i64`, returning an error on overflow.
+#[allow(dead_code)]
+#[inline]
+fn to_i64(value: u64) -> Result<i64> {
+    i64::try_from(value).map_err(|_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"))
+}
+
+/// Subtracts `b` from `a`, returning an error on underflow.
+#[allow(dead_code)]
+#[inline]
+fn checked_sub(a: u64, b: u64) -> Result<u64> {
+    a.checked_sub(b)
+        .ok_or_else(|| Error::new(ErrorKind::InvalidData, "arithmetic underflow"))
+}
+
 impl crate::FileFormat {
     /// Determines file format from the specified format reader, if any.
     #[inline]
@@ -36,18 +51,30 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a generic reader.
+    /// Determines file format from a generic reader, returning the format along with the
+    /// detection method and confidence.
     #[inline]
     pub(crate) fn from_generic_reader<R: Read + Seek>(
         #[allow(unused_variables)] reader: R,
-    ) -> Self {
+    ) -> (Self, crate::DetectionMethod, crate::Confidence) {
         #[cfg(feature = "reader-txt")]
         {
-            Self::from_txt_reader(reader).unwrap_or_default()
+            match Self::from_txt_reader(reader) {
+                Ok(fmt) => (fmt, crate::DetectionMethod::Text, crate::Confidence::Medium),
+                Err(_) => (
+                    Self::default(),
+                    crate::DetectionMethod::Default,
+                    crate::Confidence::Low,
+                ),
+            }
         }
         #[cfg(not(feature = "reader-txt"))]
         {
-            Self::default()
+            (
+                Self::default(),
+                crate::DetectionMethod::Default,
+                crate::Confidence::Low,
+            )
         }
     }
 
@@ -112,7 +139,7 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Current(size as i64 - 40))?;
+                    reader.seek(SeekFrom::Current(to_i64(checked_sub(size, 40)?)?))?;
                 }
                 EXTENDED_CONTENT_DESCRIPTION_OBJECT_GUID => {
                     // Reads the content descriptors count.
@@ -139,19 +166,19 @@ impl crate::FileFormat {
                         let remaining_len = len.saturating_sub(DESCRIPTOR_NAME_LIMIT as u16);
 
                         // Reads the descriptor value length.
-                        reader.seek(SeekFrom::Current(remaining_len as i64 + 2))?;
+                        reader.seek(SeekFrom::Current(to_i64(remaining_len as u64 + 2)?))?;
                         let len = reader.read_u16_le()?;
 
                         // Seeks to the next content descriptor.
-                        reader.seek(SeekFrom::Current(len as i64))?;
+                        reader.seek(SeekFrom::Current(i64::from(len)))?;
                     }
 
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Start(offset + size - 26))?;
+                    reader.seek(SeekFrom::Start(offset + checked_sub(size, 26)?))?;
                 }
                 _ => {
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Current(size as i64 - 24))?;
+                    reader.seek(SeekFrom::Current(to_i64(checked_sub(size, 24)?)?))?;
                 }
             }
         }
@@ -369,7 +396,7 @@ impl crate::FileFormat {
 
                     // Skips the remaining size.
                     let remaining_size = size.saturating_sub(DOC_TYPE_LIMIT as u64);
-                    reader.seek(SeekFrom::Current(remaining_size as i64))?;
+                    reader.seek(SeekFrom::Current(to_i64(remaining_size)?))?;
                 }
                 CODEC_ID_ELEMENT_ID => {
                     // Reads the Codec ID.
@@ -387,7 +414,7 @@ impl crate::FileFormat {
 
                     // Skips the remaining size.
                     let remaining_size = size.saturating_sub(CODEC_ID_LIMIT as u64);
-                    reader.seek(SeekFrom::Current(remaining_size as i64))?;
+                    reader.seek(SeekFrom::Current(to_i64(remaining_size)?))?;
                 }
                 STEREO_MODE_ELEMENT_ID => {
                     // Reads the StereoMode.
@@ -401,7 +428,7 @@ impl crate::FileFormat {
                 CLUSTER_ELEMENT_ID => break,
                 _ => {
                     // Seeks to the next element.
-                    reader.seek(SeekFrom::Current(size as i64))?;
+                    reader.seek(SeekFrom::Current(to_i64(size)?))?;
                 }
             }
 
@@ -561,6 +588,8 @@ impl crate::FileFormat {
             // Handles the extended box size.
             let size = if size == 1 {
                 reader.read_u64_be()?
+            } else if size == 0 {
+                len.saturating_sub(reader.stream_position()?) + 8
             } else {
                 size as u64
             };
@@ -568,7 +597,7 @@ impl crate::FileFormat {
             // Checks the box type.
             match box_type.as_slice() {
                 b"moov" | b"trak" | b"mdia" => {}
-                b"hdlr" => {
+                b"hdlr" if size >= 20 => {
                     // Reads the handler type.
                     reader.seek(SeekFrom::Current(8))?;
                     let handler_type = reader.read_bytes(4)?;
@@ -582,12 +611,13 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next box.
-                    reader.seek(SeekFrom::Current(size as i64 - 20))?;
+                    reader.seek(SeekFrom::Current(to_i64(size - 20)?))?;
                 }
-                _ => {
+                _ if size >= 8 => {
                     // Seeks to the next box.
-                    reader.seek(SeekFrom::Current(size as i64 - 8))?;
+                    reader.seek(SeekFrom::Current(to_i64(size - 8)?))?;
                 }
+                _ => break,
             }
 
             // Increments the box count.
@@ -690,7 +720,7 @@ impl crate::FileFormat {
                 let stream_name_size = reader.read_u8()?;
 
                 // Skips the stream name.
-                reader.seek(SeekFrom::Current(stream_name_size as i64))?;
+                reader.seek(SeekFrom::Current(i64::from(stream_name_size)))?;
 
                 // Reads the size of stream mime type.
                 let mime_type_size = reader.read_u8()?;
@@ -710,7 +740,10 @@ impl crate::FileFormat {
             }
 
             // Seeks to the next chunk.
-            reader.seek(SeekFrom::Current(chunk_size as i64 - 8))?;
+            reader.seek(SeekFrom::Current(to_i64(checked_sub(
+                chunk_size as u64,
+                8,
+            )?)?))?;
         }
 
         // Determines the file format based on the identified streams.
@@ -991,7 +1024,7 @@ impl crate::FileFormat {
 
                     // Seeks to the data.
                     reader.seek(SeekFrom::Current(
-                        filename_len as i64 + extra_field_len as i64,
+                        i64::from(filename_len) + i64::from(extra_field_len),
                     ))?;
 
                     // Reads the data.
@@ -1091,7 +1124,7 @@ impl crate::FileFormat {
 
             // Seeks to the next central directory entry.
             reader.seek(SeekFrom::Current(
-                extra_field_len as i64 + file_comment_len as i64,
+                i64::from(extra_field_len) + i64::from(file_comment_len),
             ))?;
         }
         Ok(fmt)

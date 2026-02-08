@@ -22,7 +22,8 @@ macro_rules! formats {
         )*
     } => {
         /// A file format.
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[non_exhaustive]
         pub enum FileFormat {
             $(
@@ -145,6 +146,25 @@ macro_rules! formats {
                 }
             }
 
+            /// Returns a static slice of all file format variants.
+            ///
+            /// # Examples
+            ///
+            /// Basic usage:
+            ///
+            /// ```
+            /// use file_format::FileFormat;
+            ///
+            /// let all = FileFormat::all();
+            /// assert!(all.contains(&FileFormat::Zip));
+            ///```
+            pub fn all() -> &'static [crate::FileFormat] {
+                static ALL: &[crate::FileFormat] = &[
+                    $(crate::FileFormat::$format,)*
+                ];
+                ALL
+            }
+
             /// Returns all file formats of the given [`Kind`](crate::Kind).
             ///
             /// # Examples
@@ -158,14 +178,20 @@ macro_rules! formats {
             /// assert!(formats.contains(&FileFormat::PortableNetworkGraphics));
             /// assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
             ///```
-            pub fn from_kind(kind: crate::Kind) -> Vec<crate::FileFormat> {
-                let mut formats = Vec::new();
-                $(
-                    if crate::Kind::$kind == kind {
-                        formats.push(Self::$format);
-                    }
-                )*
-                formats
+            pub fn from_kind(kind: crate::Kind) -> &'static [crate::FileFormat] {
+                static KIND: std::sync::OnceLock<std::collections::HashMap<crate::Kind, Vec<crate::FileFormat>>> =
+                    std::sync::OnceLock::new();
+                KIND.get_or_init(|| {
+                    let mut map: std::collections::HashMap<crate::Kind, Vec<crate::FileFormat>> =
+                        std::collections::HashMap::new();
+                    $(
+                        map.entry(crate::Kind::$kind).or_default().push(crate::FileFormat::$format);
+                    )*
+                    map
+                })
+                .get(&kind)
+                .map(Vec::as_slice)
+                .unwrap_or_default()
             }
 
             /// Converts the full name of a file format into the enum representation.
@@ -197,6 +223,8 @@ macro_rules! formats {
 
             /// Returns all file formats associated with the given extension.
             ///
+            /// The lookup is case-insensitive and a leading `.` is stripped automatically.
+            ///
             /// Note: multiple file formats can share the same extension.
             ///
             /// # Examples
@@ -208,10 +236,15 @@ macro_rules! formats {
             ///
             /// let formats = FileFormat::from_extension("jpg");
             /// assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+            ///
+            /// // Case-insensitive and leading dot is stripped.
+            /// assert_eq!(FileFormat::from_extension(".JPG"), FileFormat::from_extension("jpg"));
             ///```
             pub fn from_extension(extension: &str) -> Vec<crate::FileFormat> {
                 static EXTENSION: std::sync::OnceLock<std::collections::HashMap<&str, Vec<crate::FileFormat>>> =
                     std::sync::OnceLock::new();
+                let extension = extension.strip_prefix('.').unwrap_or(extension);
+                let lower = extension.to_ascii_lowercase();
                 EXTENSION.get_or_init(|| -> std::collections::HashMap<&str, Vec<crate::FileFormat>> {
                     let mut map: std::collections::HashMap<&str, Vec<crate::FileFormat>> =
                         std::collections::HashMap::new();
@@ -220,12 +253,14 @@ macro_rules! formats {
                     )*
                     map
                 })
-                .get(extension)
+                .get(lower.as_str())
                 .cloned()
                 .unwrap_or_default()
             }
 
             /// Returns all file formats associated with the given media type.
+            ///
+            /// The lookup is case-insensitive.
             ///
             /// Note: multiple file formats can share the same media type.
             ///
@@ -238,10 +273,14 @@ macro_rules! formats {
             ///
             /// let formats = FileFormat::from_media_type("image/jpeg");
             /// assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+            ///
+            /// // Case-insensitive.
+            /// assert_eq!(FileFormat::from_media_type("IMAGE/JPEG"), FileFormat::from_media_type("image/jpeg"));
             ///```
             pub fn from_media_type(media_type: &str) -> Vec<crate::FileFormat> {
                 static MEDIA_TYPE: std::sync::OnceLock<std::collections::HashMap<&str, Vec<crate::FileFormat>>> =
                     std::sync::OnceLock::new();
+                let lower = media_type.to_ascii_lowercase();
                 MEDIA_TYPE.get_or_init(|| -> std::collections::HashMap<&str, Vec<crate::FileFormat>> {
                     let mut map: std::collections::HashMap<&str, Vec<crate::FileFormat>> =
                         std::collections::HashMap::new();
@@ -250,9 +289,28 @@ macro_rules! formats {
                     )*
                     map
                 })
-                .get(media_type)
+                .get(lower.as_str())
                 .cloned()
                 .unwrap_or_default()
+            }
+        }
+
+        impl std::str::FromStr for crate::FileFormat {
+            type Err = crate::ParseFileFormatError;
+
+            fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+                static VARIANTS: std::sync::OnceLock<std::collections::HashMap<&'static str, crate::FileFormat>> =
+                    std::sync::OnceLock::new();
+                VARIANTS.get_or_init(|| {
+                    let mut map = std::collections::HashMap::new();
+                    $(
+                        map.insert(stringify!($format), crate::FileFormat::$format);
+                    )*
+                    map
+                })
+                .get(s)
+                .copied()
+                .ok_or(crate::ParseFileFormatError)
             }
         }
     };
@@ -273,6 +331,24 @@ macro_rules! signatures {
         )*
     } => {
         impl crate::FileFormat {
+            /// Maximum number of bytes needed to check all signatures.
+            pub(crate) const SIGNATURE_MAX_LEN: usize = {
+                let sizes: &[usize] = &[
+                    $($($(
+                        $($offset +)? $value.len(),
+                    )+)+)*
+                ];
+                let mut max = 0;
+                let mut i = 0;
+                while i < sizes.len() {
+                    if sizes[i] > max {
+                        max = sizes[i];
+                    }
+                    i += 1;
+                }
+                max
+            };
+
             /// Determines file format by checking its signature.
             #[allow(clippy::int_plus_one)]
             pub(crate) fn from_signature(bytes: &[u8]) -> Option<Self> {

@@ -45,6 +45,44 @@ assert_eq!(fmt.extension(), "jpg");
 assert_eq!(fmt.kind(), Kind::Image);
 ```
 
+Determines from a file with detailed detection information:
+
+```rust
+use file_format::{Confidence, DetectionMethod, FileFormat};
+
+let detection = FileFormat::from_file_detailed("fixtures/document/sample.pdf")?;
+assert_eq!(detection.format(), FileFormat::PortableDocumentFormat);
+assert_eq!(detection.confidence(), Confidence::High);
+assert_eq!(detection.method(), DetectionMethod::Signature);
+```
+
+Retrieves file formats by extension, media type, kind, or name:
+
+```rust
+use file_format::{FileFormat, Kind};
+
+let formats = FileFormat::from_extension("jpg");
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let formats = FileFormat::from_media_type("image/jpeg");
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let formats = FileFormat::from_kind(Kind::Image);
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let format = FileFormat::from_name("Joint Photographic Experts Group");
+assert_eq!(format, Some(FileFormat::JointPhotographicExpertsGroup));
+```
+
+Parses from variant name:
+
+```rust
+use file_format::FileFormat;
+
+let fmt: FileFormat = "Zip".parse()?;
+assert_eq!(fmt, FileFormat::Zip);
+```
+
 ## Usage
 
 Add this to your `Cargo.toml`:
@@ -57,6 +95,11 @@ file-format = "0.29"
 ## Crate features
 
 All features below are disabled by default.
+
+### Core features
+
+- `serde` - Enables `Serialize`/`Deserialize` on `FileFormat`, `Kind`, `Confidence`,
+  `DetectionMethod`, and `Detection`.
 
 ### Reader features
 

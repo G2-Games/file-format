@@ -14,7 +14,13 @@ documentation = "https://docs.rs/file-format"
 exclude = ["/.github", "/examples", "/fixtures", "/tests", ".gitattributes", ".gitignore"]
 rust-version = "1.85.0"
 
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+
 [features]
+## Core features
+serde = ["dep:serde"]
+
 ## Reader features
 reader = [
     "reader-asf",
