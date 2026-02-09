@@ -252,19 +252,19 @@ macro_rules! formats {
             /// assert_eq!(FileFormat::from_extension(".JPG"), FileFormat::from_extension("jpg"));
             ///```
             pub fn from_extension(extension: &str) -> Vec<crate::FileFormat> {
-                static EXTENSION: std::sync::OnceLock<std::collections::HashMap<&str, Vec<crate::FileFormat>>> =
+                static EXTENSION: std::sync::OnceLock<std::collections::HashMap<String, Vec<crate::FileFormat>>> =
                     std::sync::OnceLock::new();
                 let extension = extension.strip_prefix('.').unwrap_or(extension);
                 let lower = extension.to_ascii_lowercase();
-                EXTENSION.get_or_init(|| -> std::collections::HashMap<&str, Vec<crate::FileFormat>> {
-                    let mut map: std::collections::HashMap<&str, Vec<crate::FileFormat>> =
+                EXTENSION.get_or_init(|| -> std::collections::HashMap<String, Vec<crate::FileFormat>> {
+                    let mut map: std::collections::HashMap<String, Vec<crate::FileFormat>> =
                         std::collections::HashMap::new();
                     $(
-                        map.entry($extension).or_default().push(Self::$format);
+                        map.entry($extension.to_ascii_lowercase()).or_default().push(Self::$format);
                     )*
                     map
                 })
-                .get(lower.as_str())
+                .get(&lower)
                 .cloned()
                 .unwrap_or_default()
             }
