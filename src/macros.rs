@@ -1,4 +1,7 @@
-//! Macros for generating the [`FileFormat`](crate::FileFormat) enum and associated methods.
+//! Internal macros for generating the [`FileFormat`](crate::FileFormat) enum and its associated
+//! methods from declarative format and signature definitions.
+//!
+//! These macros are not part of the public API.
 
 /// Generates the [`FileFormat`](crate::FileFormat) enum with methods for retrieving information.
 ///
@@ -21,7 +24,13 @@ macro_rules! formats {
             kind = $kind:ident
         )*
     } => {
-        /// A file format.
+        /// Represents a specific file format identified by its magic-byte signature or
+        /// internal structure.
+        ///
+        /// Each variant corresponds to a single file format and provides associated metadata
+        /// accessible via [`name`](Self::name), [`short_name`](Self::short_name),
+        /// [`media_type`](Self::media_type), [`extension`](Self::extension), and
+        /// [`kind`](Self::kind).
         #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[non_exhaustive]
@@ -56,10 +65,12 @@ macro_rules! formats {
                 }
             }
 
-            /// Returns the short name of the file format.
+            /// Returns the short name (abbreviation) of the file format, if one exists.
             ///
-            /// Note: this information is not necessarily unique, as multiple file formats might
-            /// share the same short name.
+            /// Returns `None` for formats that do not have a widely recognized abbreviation.
+            ///
+            /// Note: this value is not necessarily unique, as multiple file formats may share
+            /// the same short name.
             ///
             /// # Examples
             ///
@@ -104,9 +115,9 @@ macro_rules! formats {
                 }
             }
 
-            /// Returns the common extension of the file format.
+            /// Returns the common file extension of the file format (without the leading dot).
             ///
-            /// Note: this information is never empty.
+            /// This value is never empty.
             ///
             /// # Examples
             ///
@@ -146,7 +157,7 @@ macro_rules! formats {
                 }
             }
 
-            /// Returns a static slice of all file format variants.
+            /// Returns a slice containing every [`FileFormat`](crate::FileFormat) variant.
             ///
             /// # Examples
             ///
@@ -194,7 +205,7 @@ macro_rules! formats {
                 .unwrap_or_default()
             }
 
-            /// Converts the full name of a file format into the enum representation.
+            /// Looks up a [`FileFormat`](crate::FileFormat) by its full name.
             ///
             /// # Examples
             ///
@@ -221,11 +232,11 @@ macro_rules! formats {
                 .cloned()
             }
 
-            /// Returns all file formats associated with the given extension.
+            /// Returns all file formats that use the given file extension.
             ///
             /// The lookup is case-insensitive and a leading `.` is stripped automatically.
             ///
-            /// Note: multiple file formats can share the same extension.
+            /// Multiple file formats can share the same extension, so this returns a `Vec`.
             ///
             /// # Examples
             ///
@@ -258,11 +269,11 @@ macro_rules! formats {
                 .unwrap_or_default()
             }
 
-            /// Returns all file formats associated with the given media type.
+            /// Returns all file formats that use the given media type.
             ///
             /// The lookup is case-insensitive.
             ///
-            /// Note: multiple file formats can share the same media type.
+            /// Multiple file formats can share the same media type, so this returns a `Vec`.
             ///
             /// # Examples
             ///
@@ -331,7 +342,7 @@ macro_rules! signatures {
         )*
     } => {
         impl crate::FileFormat {
-            /// Maximum number of bytes needed to check all signatures.
+            /// Maximum number of bytes needed to match any known signature.
             pub(crate) const SIGNATURE_MAX_LEN: usize = {
                 let sizes: &[usize] = &[
                     $($($(
@@ -349,7 +360,8 @@ macro_rules! signatures {
                 max
             };
 
-            /// Determines file format by checking its signature.
+            /// Attempts to identify the file format by matching `bytes` against all known
+            /// magic-byte signatures.
             #[allow(clippy::int_plus_one)]
             pub(crate) fn from_signature(bytes: &[u8]) -> Option<Self> {
                 $(

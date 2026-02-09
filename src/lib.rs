@@ -10,6 +10,16 @@ readers when available for accurate identification. If the signature is not reco
 falls back to the [default](`FileFormat::default`) file format, which is
 [Arbitrary Binary Data (BIN)](`FileFormat::ArbitraryBinaryData`).
 
+# Highlights
+
+- **Extensive coverage** — supports 500+ file formats across 20+ categories.
+- **Multi-layered detection** — combines magic-byte signature matching, format-specific deep
+  readers, and text heuristics for accurate identification.
+- **Detailed detection API** — [`from_reader_detailed`](`FileFormat::from_reader_detailed`) and
+  friends return a [`Detection`] value carrying [`Confidence`] levels and the
+  [`DetectionMethod`] used.
+- **Safe and lightweight** — `#![forbid(unsafe_code)]` with zero dependencies by default.
+
 # Examples
 
 Determines from a file:
@@ -293,13 +303,16 @@ impl std::error::Error for ParseFileFormatError {}
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Confidence {
     /// The format could not be positively identified. The result is the default fallback
-    /// ([`ArbitraryBinaryData`](FileFormat::ArbitraryBinaryData)).
+    /// ([`ArbitraryBinaryData`](FileFormat::ArbitraryBinaryData)). This typically means no
+    /// signature matched and the content could not be classified — the file may genuinely be
+    /// arbitrary binary data.
     Low,
-    /// The format was identified heuristically (e.g. by checking that the content is valid
-    /// ASCII/UTF-8 text). The result is likely correct but not guaranteed.
+    /// The format was identified heuristically — for example, the `reader-txt` feature detected
+    /// that the content is valid ASCII/UTF-8 text. The result is likely correct but not
+    /// guaranteed because heuristics can misidentify files.
     Medium,
-    /// The format was identified by a magic-byte signature or a format-specific deep reader.
-    /// The result is very likely correct.
+    /// The format was identified by a magic-byte signature or further confirmed by a
+    /// format-specific deep reader. The result is very likely correct.
     High,
 }
 
@@ -383,7 +396,7 @@ impl Detection {
 }
 
 impl FileFormat {
-    /// Determines file format from bytes.
+    /// Determines the file format from bytes.
     ///
     /// # Examples
     ///
@@ -405,14 +418,15 @@ impl FileFormat {
     /// let fmt = FileFormat::from_bytes(&[0; 1000]);
     /// assert_eq!(fmt, FileFormat::ArbitraryBinaryData);
     ///```
-    ///
-    /// [default value]: FileFormat::default
     #[inline]
     pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Self {
         Self::from(bytes.as_ref())
     }
 
-    /// Determines file format from a file.
+    /// Determines the file format from a file.
+    ///
+    /// This method opens the file at the given path and reads its entire contents into memory
+    /// for detection.
     ///
     /// # Examples
     ///
@@ -430,7 +444,10 @@ impl FileFormat {
         Self::from_reader(File::open(path)?)
     }
 
-    /// Determines file format from a reader.
+    /// Determines the file format from a reader.
+    ///
+    /// The reader must implement both [`Read`] and [`Seek`] so the detection logic can read
+    /// the initial bytes and then rewind for format-specific deep readers.
     ///
     /// # Examples
     ///
@@ -447,7 +464,7 @@ impl FileFormat {
         Self::from_reader_detailed(reader).map(|d| d.format)
     }
 
-    /// Determines file format from bytes, returning a [`Detection`] with confidence, method,
+    /// Determines the file format from bytes, returning a [`Detection`] with confidence, method,
     /// and any reader error.
     ///
     /// # Examples
@@ -470,7 +487,7 @@ impl FileFormat {
         })
     }
 
-    /// Determines file format from a file, returning a [`Detection`] with confidence, method,
+    /// Determines the file format from a file, returning a [`Detection`] with confidence, method,
     /// and any reader error.
     ///
     /// # Examples
@@ -488,7 +505,7 @@ impl FileFormat {
         Self::from_reader_detailed(File::open(path)?)
     }
 
-    /// Determines file format from a reader, returning a [`Detection`] with confidence, method,
+    /// Determines the file format from a reader, returning a [`Detection`] with confidence, method,
     /// and any reader error.
     ///
     /// When a signature matches but the format-specific reader fails, the error is captured in
@@ -722,7 +739,12 @@ impl From<&[u8]> for FileFormat {
     }
 }
 
-/// A kind of file format.
+/// The broad category a [`FileFormat`] belongs to.
+///
+/// Every file format is classified into exactly one kind, such as [`Image`](Kind::Image),
+/// [`Audio`](Kind::Audio), [`Document`](Kind::Document), and so on. Use
+/// [`FileFormat::kind`] to retrieve it, or [`FileFormat::from_kind`] to list all formats
+/// in a given category.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]

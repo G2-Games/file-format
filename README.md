@@ -15,6 +15,17 @@ It checks the signature of the file to determine its format and intelligently em
 readers when available for accurate identification. If the signature is not recognized, the crate
 falls back to the default file format, which is Arbitrary Binary Data (BIN).
 
+## Highlights
+
+- **500+ file formats** supported across 20+ categories (audio, video, image, document, archive,
+  and many more)
+- **Multi-layered detection** combining magic bytes signatures, format-specific deep readers, and
+  text heuristics for accurate identification
+- **Zero dependencies** by default, with optional `serde` support
+- **No unsafe code** (`#![forbid(unsafe_code)]`)
+- **Detailed detection API** with confidence levels and detection method information
+- **`no_std`-compatible core** (signature-based detection only needs `&[u8]`)
+
 ## Examples
 
 Determines from a file:

@@ -1,4 +1,8 @@
-//! Definition of file formats, listed in alphabetical order.
+//! Declarative definitions of all supported file formats, listed in alphabetical order.
+//!
+//! Each entry specifies the format's full name, optional short name, media type, common file
+//! extension, and category ([`Kind`](crate::Kind)). These definitions are consumed by the
+//! [`formats!`] macro to generate the [`FileFormat`](crate::FileFormat) enum and its methods.
 
 formats! {
     format = Abiword

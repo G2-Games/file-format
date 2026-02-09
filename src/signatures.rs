@@ -1,4 +1,8 @@
-//! Definition of known file formats signatures, listed in descending order of size.
+//! Magic-byte signature definitions for all recognized file formats.
+//!
+//! Signatures are listed in descending order of byte length to ensure that longer, more specific
+//! patterns are matched first, reducing the risk of false positives. Each entry maps a byte
+//! sequence (with an optional offset) to a [`FileFormat`](crate::FileFormat) variant.
 
 signatures! {
     // 59 bytes

@@ -1,15 +1,19 @@
-//! Readers for specific file formats.
+//! Format-specific deep readers for accurate file format identification.
+//!
+//! When a file's magic-byte signature matches a container format (e.g. ZIP, CFB, EBML), these
+//! readers inspect the internal structure of the file to determine the exact format. Each reader
+//! is gated behind a corresponding `reader-*` feature flag.
 
 use std::io::*;
 
-/// Converts a `u64` value to `i64`, returning an error on overflow.
+/// Converts a `u64` value to `i64`, returning an [`InvalidData`](std::io::ErrorKind::InvalidData) error on overflow.
 #[allow(dead_code)]
 #[inline]
 fn to_i64(value: u64) -> Result<i64> {
     i64::try_from(value).map_err(|_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"))
 }
 
-/// Subtracts `b` from `a`, returning an error on underflow.
+/// Subtracts `b` from `a`, returning an [`InvalidData`](std::io::ErrorKind::InvalidData) error on underflow.
 #[allow(dead_code)]
 #[inline]
 fn checked_sub(a: u64, b: u64) -> Result<u64> {
@@ -18,7 +22,7 @@ fn checked_sub(a: u64, b: u64) -> Result<u64> {
 }
 
 impl crate::FileFormat {
-    /// Determines file format from the specified format reader, if any.
+    /// Dispatches to the appropriate format-specific reader based on the initial signature match.
     #[inline]
     pub(crate) fn from_fmt_reader<R: Read + Seek>(
         fmt: Self,
@@ -51,8 +55,8 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a generic reader, returning the format along with the
-    /// detection method and confidence.
+    /// Falls back to generic detection (e.g. plain-text heuristics) when no signature matched or
+    /// the format-specific reader is unavailable.
     #[inline]
     pub(crate) fn from_generic_reader<R: Read + Seek>(
         #[allow(unused_variables)] reader: R,
@@ -78,7 +82,7 @@ impl crate::FileFormat {
         }
     }
 
-    /// Determines file format from an ASF reader.
+    /// Determines the file format from an ASF reader.
     #[cfg(feature = "reader-asf")]
     pub(crate) fn from_asf_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of descriptors that can be processed by the reader.
@@ -193,7 +197,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a CFB reader.
+    /// Determines the file format from a CFB reader.
     #[cfg(feature = "reader-cfb")]
     pub(crate) fn from_cfb_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Reads the major version.
@@ -287,7 +291,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from an EBML reader.
+    /// Determines the file format from an EBML reader.
     #[cfg(feature = "reader-ebml")]
     pub(crate) fn from_ebml_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of EBML elements that can be processed by the reader.
@@ -448,7 +452,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from an EXE reader.
+    /// Determines the file format from an EXE reader.
     #[cfg(feature = "reader-exe")]
     pub(crate) fn from_exe_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Retrieves the stream length.
@@ -489,7 +493,7 @@ impl crate::FileFormat {
         Ok(Self::MsDosExecutable)
     }
 
-    /// Determines file format from an ID3v2 reader.
+    /// Determines the file format from an ID3v2 reader.
     #[cfg(feature = "reader-id3v2")]
     pub(crate) fn from_id3v2_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Loops while in ID3v2 segment.
@@ -556,7 +560,7 @@ impl crate::FileFormat {
         Ok(Self::Id3v2)
     }
 
-    /// Determines file format from a MP4 reader.
+    /// Determines the file format from an MP4 reader.
     #[cfg(feature = "reader-mp4")]
     pub(crate) fn from_mp4_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of boxes that can be processed by the reader.
@@ -636,7 +640,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a PDF reader.
+    /// Determines the file format from a PDF reader.
     #[cfg(feature = "reader-pdf")]
     pub(crate) fn from_pdf_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Maximum number of bytes that can be processed by the reader (32 MB).
@@ -685,7 +689,7 @@ impl crate::FileFormat {
         Ok(Self::PortableDocumentFormat)
     }
 
-    /// Determines file format from a RM reader.
+    /// Determines the file format from an RM reader.
     #[cfg(feature = "reader-rm")]
     pub(crate) fn from_rm_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of chunks that can be processed by the reader.
@@ -756,7 +760,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a SQLite 3 reader.
+    /// Determines the file format from a SQLite 3 reader.
     #[cfg(feature = "reader-sqlite3")]
     pub(crate) fn from_sqlite3_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Marker for the Sketch file format.
@@ -778,7 +782,7 @@ impl crate::FileFormat {
         Ok(Self::Sqlite3)
     }
 
-    /// Determines file format from a TXT reader.
+    /// Determines the file format from a TXT reader.
     #[cfg(feature = "reader-txt")]
     pub(crate) fn from_txt_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of lines that can be processed by the reader.
@@ -809,7 +813,7 @@ impl crate::FileFormat {
             .map(|_| Self::PlainText)
     }
 
-    /// Determines file format from a XML reader.
+    /// Determines the file format from an XML reader.
     #[cfg(feature = "reader-xml")]
     pub(crate) fn from_xml_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Rewinds to the beginning of the stream plus the size of the XML file format signature.
@@ -884,7 +888,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a ZIP reader.
+    /// Determines the file format from a ZIP reader.
     #[cfg(feature = "reader-zip")]
     pub(crate) fn from_zip_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of entries that can be processed by the reader.
@@ -1131,7 +1135,7 @@ impl crate::FileFormat {
     }
 }
 
-/// A trait for convenient data reading.
+/// Extension trait providing typed binary read helpers on top of [`Read`].
 #[allow(dead_code)]
 trait ReadData: Read {
     /// Reads a specified number of bytes into a `Vec<u8>`.
@@ -1213,11 +1217,10 @@ trait ReadData: Read {
     }
 }
 
-/// Allows any type `R` that implements the `Read` trait to automatically benefit from the
-/// additional methods provided by the `ReadData` trait.
+/// Blanket implementation for all [`Read`] types.
 impl<R: Read> ReadData for R {}
 
-/// A trait for finding a byte pattern within data.
+/// Extension trait for byte-pattern searching using a Boyer-Moore-Horspool algorithm.
 #[allow(dead_code)]
 trait FindBytes: AsRef<[u8]> {
     /// Searches for the specified byte pattern and returns the index of the first occurrence.
@@ -1302,6 +1305,5 @@ trait FindBytes: AsRef<[u8]> {
     }
 }
 
-/// Allows any type `B` that implements the `AsRef<[u8]>` trait to benefit from the additional
-/// methods provided by the `FindBytes` trait.
+/// Blanket implementation for all `AsRef<[u8]>` types.
 impl<B: AsRef<[u8]> + ?Sized> FindBytes for B {}
