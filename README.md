@@ -24,7 +24,6 @@ falls back to the default file format, which is Arbitrary Binary Data (BIN).
 - **Zero dependencies** by default, with optional `serde` support
 - **No unsafe code** (`#![forbid(unsafe_code)]`)
 - **Detailed detection API** with confidence levels and detection method information
-- **`no_std`-compatible core** (signature-based detection only needs `&[u8]`)
 
 ## Examples
 
