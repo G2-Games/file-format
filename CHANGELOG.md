@@ -3,8 +3,7 @@
 ## API
 
 - Add `FileFormat::all` method returning a `&'static [FileFormat]` slice of every variant
-- Add `FileFormat::from_kind` method to retrieve all file formats of a given `Kind` (now returns
-  `&'static [FileFormat]` instead of `Vec`)
+- Add `FileFormat::from_kind` method to retrieve all file formats of a given `Kind`
 - Add `FileFormat::from_extension` method to retrieve all file formats for a given extension (
   case-insensitive, leading `.` stripped automatically)
 - Add `FileFormat::from_media_type` method to retrieve all file formats for a given media type (
