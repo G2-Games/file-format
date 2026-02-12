@@ -3014,7 +3014,7 @@ formats! {
     format = WindowsIcon
     name = "Windows Icon"
     short_name = "ICO"
-    media_type = "iimage/vnd.microsoft.icon"
+    media_type = "image/vnd.microsoft.icon"
     extension = "ico"
     kind = Image
 
