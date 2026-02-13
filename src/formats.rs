@@ -711,7 +711,7 @@ formats! {
     extension = "dxf"
     kind = Model
 
-    format = Drawio
+    format = DrawIo
     name = "draw.io"
     short_name = "DRAWIO"
     media_type = "application/vnd.jgraph.mxfile"

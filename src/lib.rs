@@ -203,7 +203,7 @@ identification.
   * [Universal Subtitle Format (USF)](`FileFormat::UniversalSubtitleFormat`)
   * [XML Localization Interchange File Format (XLIFF)](`FileFormat::XmlLocalizationInterchangeFileFormat`)
   * [XML Shareable Playlist Format (XSPF)](`FileFormat::XmlShareablePlaylistFormat`)
-  * [draw.io (DRAWIO)](`FileFormat::Drawio`)
+  * [draw.io (DRAWIO)](`FileFormat::DrawIo`)
 - `reader-zip` - Enables [ZIP](`FileFormat::Zip`)-based file formats detection.
   * [3D Manufacturing Format (3MF)](`FileFormat::ThreeDimensionalManufacturingFormat`)
   * [Adobe Integrated Runtime (AIR)](`FileFormat::AdobeIntegratedRuntime`)

@@ -438,7 +438,7 @@ signatures! {
     format = BmfontAscii
     value = b"info face="
 
-    format = Drawio
+    format = DrawIo
     value = b"\xEF\xBB\xBF<mxfile"
     value = b"<mxfile"
 

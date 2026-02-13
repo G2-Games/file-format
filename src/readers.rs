@@ -838,7 +838,7 @@ impl crate::FileFormat {
         } else if buf.holds("<COLLADA") {
             Self::CollaborativeDesignActivity
         } else if buf.holds("<mxfile") {
-            Self::Drawio
+            Self::DrawIo
         } else if buf.holds("<X3D") {
             Self::Extensible3d
         } else if buf.holds("<xsl") {
