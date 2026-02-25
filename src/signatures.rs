@@ -635,6 +635,7 @@ signatures! {
 
     format = Mpeg4Part14
     value = b"ftypARRI" offset = 4
+    value = b"ftypFACE" offset = 4
     value = b"ftypMSNV" offset = 4
     value = b"ftypNDAS" offset = 4
     value = b"ftypNDSC" offset = 4
