@@ -663,6 +663,7 @@ signatures! {
     value = b"ftypmp42" offset = 4
     value = b"ftypmp4v" offset = 4
     value = b"ftypmp71" offset = 4
+    value = b"ftypnvr1" offset = 4
 
     format = MultipleImageNetworkGraphics
     value = b"\x8AMNG\r\n\x1A\n"
