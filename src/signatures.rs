@@ -635,6 +635,7 @@ signatures! {
 
     format = Mpeg4Part14
     value = b"ftypARRI" offset = 4
+    value = b"ftypFACE" offset = 4
     value = b"ftypMSNV" offset = 4
     value = b"ftypNDAS" offset = 4
     value = b"ftypNDSC" offset = 4
@@ -663,6 +664,7 @@ signatures! {
     value = b"ftypmp42" offset = 4
     value = b"ftypmp4v" offset = 4
     value = b"ftypmp71" offset = 4
+    value = b"ftypnvr1" offset = 4
 
     format = MultipleImageNetworkGraphics
     value = b"\x8AMNG\r\n\x1A\n"
