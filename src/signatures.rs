@@ -1312,6 +1312,7 @@ signatures! {
     format = Zip
     value = b"PK\x03\x04"
     value = b"PK\x05\x06"
+    value = b"PK\x30\x30"
 
     format = Zpaq
     value = b"7kSt"
