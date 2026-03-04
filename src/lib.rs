@@ -15,9 +15,6 @@ falls back to the [default](`FileFormat::default`) file format, which is
 - **Extensive coverage** — supports 500+ file formats across 20+ categories.
 - **Multi-layered detection** — combines magic-byte signature matching, format-specific deep
   readers, and text heuristics for accurate identification.
-- **Detailed detection API** — [`from_reader_detailed`](`FileFormat::from_reader_detailed`) and
-  friends return a [`Detection`] value carrying [`Confidence`] levels and the
-  [`DetectionMethod`] used.
 - **Safe and lightweight** — `#![forbid(unsafe_code)]` with zero dependencies by default.
 
 # Examples
@@ -51,19 +48,7 @@ assert_eq!(fmt.extension(), "jpg");
 assert_eq!(fmt.kind(), Kind::Image);
 ```
 
-Determines from a file with detailed detection information:
-
-```no_run
-use file_format::{Confidence, DetectionMethod, FileFormat};
-
-let detection = FileFormat::from_file_detailed("fixtures/document/sample.pdf")?;
-assert_eq!(detection.format(), FileFormat::PortableDocumentFormat);
-assert_eq!(detection.confidence(), Confidence::High);
-assert_eq!(detection.method(), DetectionMethod::Signature);
-# Ok::<(), std::io::Error>(())
-```
-
-Retrieves file formats by extension, media type, kind, or name:
+Retrieves file formats by extension, media type, or kind:
 
 ```
 use file_format::{FileFormat, Kind};
@@ -76,9 +61,6 @@ assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
 
 let formats = FileFormat::from_kind(Kind::Image);
 assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
-
-let format = FileFormat::from_name("Joint Photographic Experts Group");
-assert_eq!(format, Some(FileFormat::JointPhotographicExpertsGroup));
 ```
 
 Parses from variant name:
@@ -93,11 +75,6 @@ assert_eq!(fmt, FileFormat::Zip);
 # Crate features
 
 All features below are disabled by default.
-
-## Core features
-
-- `serde` - Enables `Serialize`/`Deserialize` on [`FileFormat`], [`Kind`], [`Confidence`],
-  [`DetectionMethod`], and [`Detection`].
 
 ## Reader features
 
@@ -296,105 +273,6 @@ impl Display for ParseFileFormatError {
 
 impl std::error::Error for ParseFileFormatError {}
 
-/// How confident the detection result is.
-///
-/// The confidence level reflects how much evidence was available to identify the file format.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Confidence {
-    /// The format could not be positively identified. The result is the default fallback
-    /// ([`ArbitraryBinaryData`](FileFormat::ArbitraryBinaryData)). This typically means no
-    /// signature matched and the content could not be classified — the file may genuinely be
-    /// arbitrary binary data.
-    Low,
-    /// The format was identified heuristically — for example, the `reader-txt` feature detected
-    /// that the content is valid ASCII/UTF-8 text. The result is likely correct but not
-    /// guaranteed because heuristics can misidentify files.
-    Medium,
-    /// The format was identified by a magic-byte signature or further confirmed by a
-    /// format-specific deep reader. The result is very likely correct.
-    High,
-}
-
-/// The method that was used to identify the file format.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum DetectionMethod {
-    /// The file was identified by matching a magic-byte signature only.
-    Signature,
-    /// The file was first matched by signature and then refined by a format-specific deep reader
-    /// (e.g. the ZIP reader that inspects archive entries).
-    Reader,
-    /// No signature matched and the file was identified as plain text by the generic text reader
-    /// (requires the `reader-txt` feature).
-    Text,
-    /// No detection method succeeded. The result is the default fallback format.
-    Default,
-}
-
-/// Result of a detailed file format detection.
-///
-/// Returned by [`FileFormat::from_reader_detailed`], [`FileFormat::from_file_detailed`], and
-/// [`FileFormat::from_bytes_detailed`].
-///
-/// In addition to the detected [`FileFormat`] it carries:
-///
-/// - [`confidence`](Detection::confidence) — how certain the identification is.
-/// - [`method`](Detection::method) — which detection strategy produced the result.
-/// - [`reader_error`](Detection::reader_error) — any I/O error that occurred in a
-///   format-specific reader (the detection then fell back to a less precise strategy).
-///
-/// # Examples
-///
-/// ```no_run
-/// use file_format::{Confidence, DetectionMethod, FileFormat};
-///
-/// let det = FileFormat::from_file_detailed("fixtures/document/sample.pdf")?;
-/// assert_eq!(det.format(), FileFormat::PortableDocumentFormat);
-/// assert_eq!(det.confidence(), Confidence::High);
-/// assert!(matches!(det.method(), DetectionMethod::Signature | DetectionMethod::Reader));
-/// assert!(det.reader_error().is_none());
-/// # Ok::<(), std::io::Error>(())
-/// ```
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Detection {
-    format: FileFormat,
-    confidence: Confidence,
-    method: DetectionMethod,
-    #[cfg_attr(feature = "serde", serde(skip))]
-    reader_error: Option<std::io::Error>,
-}
-
-impl Detection {
-    /// Returns the detected file format.
-    #[inline]
-    pub fn format(&self) -> FileFormat {
-        self.format
-    }
-
-    /// Returns the confidence level of the detection.
-    #[inline]
-    pub fn confidence(&self) -> Confidence {
-        self.confidence
-    }
-
-    /// Returns the method used to detect the file format.
-    #[inline]
-    pub fn method(&self) -> DetectionMethod {
-        self.method
-    }
-
-    /// Returns the error that occurred in the format-specific reader, if any.
-    ///
-    /// A `Some` value means the signature matched a format but the deep reader failed, so the
-    /// result was obtained via a fallback strategy and may be less precise.
-    #[inline]
-    pub fn reader_error(&self) -> Option<&std::io::Error> {
-        self.reader_error.as_ref()
-    }
-}
-
 impl FileFormat {
     /// Determines the file format from bytes.
     ///
@@ -460,69 +338,7 @@ impl FileFormat {
     /// assert_eq!(fmt, FileFormat::Empty);
     /// # Ok::<(), std::io::Error>(())
     ///```
-    pub fn from_reader<R: Read + Seek>(reader: R) -> Result<Self> {
-        Self::from_reader_detailed(reader).map(|d| d.format)
-    }
-
-    /// Determines the file format from bytes, returning a [`Detection`] with confidence, method,
-    /// and any reader error.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use file_format::{Confidence, DetectionMethod, FileFormat};
-    ///
-    /// let det = FileFormat::from_bytes_detailed(b"\x89\x50\x4E\x47\x0D\x0A\x1A\x0A");
-    /// assert_eq!(det.format(), FileFormat::PortableNetworkGraphics);
-    /// assert_eq!(det.confidence(), Confidence::High);
-    /// assert_eq!(det.method(), DetectionMethod::Signature);
-    ///```
-    #[inline]
-    pub fn from_bytes_detailed<B: AsRef<[u8]>>(bytes: B) -> Detection {
-        Self::from_reader_detailed(Cursor::new(bytes.as_ref())).unwrap_or_else(|_| Detection {
-            format: Self::default(),
-            confidence: Confidence::Low,
-            method: DetectionMethod::Default,
-            reader_error: None,
-        })
-    }
-
-    /// Determines the file format from a file, returning a [`Detection`] with confidence, method,
-    /// and any reader error.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use file_format::{Confidence, FileFormat};
-    ///
-    /// let det = FileFormat::from_file_detailed("fixtures/video/sample.avi")?;
-    /// assert_eq!(det.format(), FileFormat::AudioVideoInterleave);
-    /// assert_eq!(det.confidence(), Confidence::High);
-    /// # Ok::<(), std::io::Error>(())
-    ///```
-    #[inline]
-    pub fn from_file_detailed<P: AsRef<Path>>(path: P) -> Result<Detection> {
-        Self::from_reader_detailed(File::open(path)?)
-    }
-
-    /// Determines the file format from a reader, returning a [`Detection`] with confidence, method,
-    /// and any reader error.
-    ///
-    /// When a signature matches but the format-specific reader fails, the error is captured in
-    /// [`Detection::reader_error`] and the format falls back to a generic reader.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use file_format::{Confidence, DetectionMethod, FileFormat};
-    ///
-    /// let det = FileFormat::from_reader_detailed(std::io::empty())?;
-    /// assert_eq!(det.format(), FileFormat::Empty);
-    /// assert_eq!(det.confidence(), Confidence::High);
-    /// assert_eq!(det.method(), DetectionMethod::Signature);
-    /// # Ok::<(), std::io::Error>(())
-    ///```
-    pub fn from_reader_detailed<R: Read + Seek>(mut reader: R) -> Result<Detection> {
+    pub fn from_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         let mut buf = vec![0u8; Self::SIGNATURE_MAX_LEN];
         let mut nread = 0;
         while nread < buf.len() {
@@ -533,186 +349,13 @@ impl FileFormat {
         }
 
         Ok(if nread == 0 {
-            Detection {
-                format: Self::Empty,
-                confidence: Confidence::High,
-                method: DetectionMethod::Signature,
-                reader_error: None,
-            }
-        } else if let Some(sig_fmt) = Self::from_signature(&buf[..nread]) {
-            match Self::from_fmt_reader(sig_fmt, &mut reader) {
-                Ok(format) => {
-                    let refined = format != sig_fmt;
-                    Detection {
-                        format,
-                        confidence: Confidence::High,
-                        method: if refined {
-                            DetectionMethod::Reader
-                        } else {
-                            DetectionMethod::Signature
-                        },
-                        reader_error: None,
-                    }
-                }
-                Err(err) => {
-                    let (format, method, confidence) = Self::from_generic_reader(&mut reader);
-                    Detection {
-                        format,
-                        confidence,
-                        method,
-                        reader_error: Some(err),
-                    }
-                }
-            }
+            Self::Empty
+        } else if let Some(fmt) = Self::from_signature(&buf[..nread]) {
+            Self::from_fmt_reader(fmt, &mut reader)
+                .unwrap_or_else(|_| Self::from_generic_reader(&mut reader))
         } else {
-            let (format, method, confidence) = Self::from_generic_reader(&mut reader);
-            Detection {
-                format,
-                confidence,
-                method,
-                reader_error: None,
-            }
+            Self::from_generic_reader(&mut reader)
         })
-    }
-}
-
-impl FileFormat {
-    /// Returns `true` if the file format is an [`Archive`](Kind::Archive).
-    #[inline]
-    pub const fn is_archive(&self) -> bool {
-        matches!(self.kind(), Kind::Archive)
-    }
-
-    /// Returns `true` if the file format is [`Audio`](Kind::Audio).
-    #[inline]
-    pub const fn is_audio(&self) -> bool {
-        matches!(self.kind(), Kind::Audio)
-    }
-
-    /// Returns `true` if the file format is [`Compressed`](Kind::Compressed).
-    #[inline]
-    pub const fn is_compressed(&self) -> bool {
-        matches!(self.kind(), Kind::Compressed)
-    }
-
-    /// Returns `true` if the file format is a [`Database`](Kind::Database).
-    #[inline]
-    pub const fn is_database(&self) -> bool {
-        matches!(self.kind(), Kind::Database)
-    }
-
-    /// Returns `true` if the file format is a [`Diagram`](Kind::Diagram).
-    #[inline]
-    pub const fn is_diagram(&self) -> bool {
-        matches!(self.kind(), Kind::Diagram)
-    }
-
-    /// Returns `true` if the file format is a [`Disk`](Kind::Disk).
-    #[inline]
-    pub const fn is_disk(&self) -> bool {
-        matches!(self.kind(), Kind::Disk)
-    }
-
-    /// Returns `true` if the file format is a [`Document`](Kind::Document).
-    #[inline]
-    pub const fn is_document(&self) -> bool {
-        matches!(self.kind(), Kind::Document)
-    }
-
-    /// Returns `true` if the file format is an [`Ebook`](Kind::Ebook).
-    #[inline]
-    pub const fn is_ebook(&self) -> bool {
-        matches!(self.kind(), Kind::Ebook)
-    }
-
-    /// Returns `true` if the file format is an [`Executable`](Kind::Executable).
-    #[inline]
-    pub const fn is_executable(&self) -> bool {
-        matches!(self.kind(), Kind::Executable)
-    }
-
-    /// Returns `true` if the file format is a [`Font`](Kind::Font).
-    #[inline]
-    pub const fn is_font(&self) -> bool {
-        matches!(self.kind(), Kind::Font)
-    }
-
-    /// Returns `true` if the file format is a [`Formula`](Kind::Formula).
-    #[inline]
-    pub const fn is_formula(&self) -> bool {
-        matches!(self.kind(), Kind::Formula)
-    }
-
-    /// Returns `true` if the file format is [`Geospatial`](Kind::Geospatial).
-    #[inline]
-    pub const fn is_geospatial(&self) -> bool {
-        matches!(self.kind(), Kind::Geospatial)
-    }
-
-    /// Returns `true` if the file format is an [`Image`](Kind::Image).
-    #[inline]
-    pub const fn is_image(&self) -> bool {
-        matches!(self.kind(), Kind::Image)
-    }
-
-    /// Returns `true` if the file format is [`Metadata`](Kind::Metadata).
-    #[inline]
-    pub const fn is_metadata(&self) -> bool {
-        matches!(self.kind(), Kind::Metadata)
-    }
-
-    /// Returns `true` if the file format is a [`Model`](Kind::Model).
-    #[inline]
-    pub const fn is_model(&self) -> bool {
-        matches!(self.kind(), Kind::Model)
-    }
-
-    /// Returns `true` if the file format is [`Other`](Kind::Other).
-    #[inline]
-    pub const fn is_other(&self) -> bool {
-        matches!(self.kind(), Kind::Other)
-    }
-
-    /// Returns `true` if the file format is a [`Package`](Kind::Package).
-    #[inline]
-    pub const fn is_package(&self) -> bool {
-        matches!(self.kind(), Kind::Package)
-    }
-
-    /// Returns `true` if the file format is a [`Playlist`](Kind::Playlist).
-    #[inline]
-    pub const fn is_playlist(&self) -> bool {
-        matches!(self.kind(), Kind::Playlist)
-    }
-
-    /// Returns `true` if the file format is a [`Presentation`](Kind::Presentation).
-    #[inline]
-    pub const fn is_presentation(&self) -> bool {
-        matches!(self.kind(), Kind::Presentation)
-    }
-
-    /// Returns `true` if the file format is a [`Rom`](Kind::Rom).
-    #[inline]
-    pub const fn is_rom(&self) -> bool {
-        matches!(self.kind(), Kind::Rom)
-    }
-
-    /// Returns `true` if the file format is a [`Spreadsheet`](Kind::Spreadsheet).
-    #[inline]
-    pub const fn is_spreadsheet(&self) -> bool {
-        matches!(self.kind(), Kind::Spreadsheet)
-    }
-
-    /// Returns `true` if the file format is a [`Subtitle`](Kind::Subtitle).
-    #[inline]
-    pub const fn is_subtitle(&self) -> bool {
-        matches!(self.kind(), Kind::Subtitle)
-    }
-
-    /// Returns `true` if the file format is [`Video`](Kind::Video).
-    #[inline]
-    pub const fn is_video(&self) -> bool {
-        matches!(self.kind(), Kind::Video)
     }
 }
 
@@ -746,7 +389,6 @@ impl From<&[u8]> for FileFormat {
 /// [`FileFormat::kind`] to retrieve it, or [`FileFormat::from_kind`] to list all formats
 /// in a given category.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum Kind {
     /// Files and directories stored in a single, possibly compressed, archive.

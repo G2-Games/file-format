@@ -2,30 +2,15 @@
 
 ## API
 
-- Add `FileFormat::all` method returning a `&'static [FileFormat]` slice of every variant
 - Add `FileFormat::from_kind` method to retrieve all file formats of a given `Kind`
 - Add `FileFormat::from_extension` method to retrieve all file formats for a given extension (
   case-insensitive, leading `.` stripped automatically)
 - Add `FileFormat::from_media_type` method to retrieve all file formats for a given media type (
   case-insensitive)
-- Add `FileFormat::from_name` method to retrieve a file format from its full display name
 - Add `FromStr` implementation for `FileFormat` to parse canonical variant names (e.g. `"Zip"`,
   `"PortableDocumentFormat"`)
 - Add `ParseFileFormatError` error type for `FromStr`
-- Add `Detection` struct returned by the new `_detailed` family of methods, exposing `format()`,
-  `confidence()`, `method()`, and `reader_error()`
-- Add `Confidence` enum (`High`, `Medium`, `Low`)
-- Add `DetectionMethod` enum (`Signature`, `Reader`, `Text`, `Default`)
-- Add `FileFormat::from_reader_detailed`, `FileFormat::from_file_detailed`, and
-  `FileFormat::from_bytes_detailed` methods
-- Add `is_archive()`, `is_audio()`, `is_compressed()`, `is_database()`, `is_diagram()`, `is_disk()`,
-  `is_document()`, `is_ebook()`, `is_executable()`, `is_font()`, `is_formula()`, `is_geospatial()`,
-  `is_image()`, `is_metadata()`, `is_model()`, `is_other()`, `is_package()`, `is_playlist()`,
-  `is_presentation()`, `is_rom()`, `is_spreadsheet()`, `is_subtitle()`, `is_video()` convenience
-  methods on `FileFormat`
 - Add `Hash`, `Ord`, and `PartialOrd` derives to `FileFormat` and `Kind`
-- Add optional `serde` feature for `Serialize`/`Deserialize` on `FileFormat`, `Kind`, `Confidence`,
-  `DetectionMethod`, and `Detection`
 
 ## Improvements
 

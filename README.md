@@ -21,9 +21,8 @@ falls back to the default file format, which is Arbitrary Binary Data (BIN).
   and many more)
 - **Multi-layered detection** combining magic bytes signatures, format-specific deep readers, and
   text heuristics for accurate identification
-- **Zero dependencies** by default, with optional `serde` support
+- **Zero dependencies**
 - **No unsafe code** (`#![forbid(unsafe_code)]`)
-- **Detailed detection API** with confidence levels and detection method information
 
 ## Examples
 
@@ -55,18 +54,7 @@ assert_eq!(fmt.extension(), "jpg");
 assert_eq!(fmt.kind(), Kind::Image);
 ```
 
-Determines from a file with detailed detection information:
-
-```rust
-use file_format::{Confidence, DetectionMethod, FileFormat};
-
-let detection = FileFormat::from_file_detailed("fixtures/document/sample.pdf")?;
-assert_eq!(detection.format(), FileFormat::PortableDocumentFormat);
-assert_eq!(detection.confidence(), Confidence::High);
-assert_eq!(detection.method(), DetectionMethod::Signature);
-```
-
-Retrieves file formats by extension, media type, kind, or name:
+Retrieves file formats by extension, media type, or kind:
 
 ```rust
 use file_format::{FileFormat, Kind};
@@ -79,9 +67,6 @@ assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
 
 let formats = FileFormat::from_kind(Kind::Image);
 assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
-
-let format = FileFormat::from_name("Joint Photographic Experts Group");
-assert_eq!(format, Some(FileFormat::JointPhotographicExpertsGroup));
 ```
 
 Parses from variant name:
@@ -105,11 +90,6 @@ file-format = "0.29"
 ## Crate features
 
 All features below are disabled by default.
-
-### Core features
-
-- `serde` - Enables `Serialize`/`Deserialize` on `FileFormat`, `Kind`, `Confidence`,
-  `DetectionMethod`, and `Detection`.
 
 ### Reader features
 

@@ -60,25 +60,14 @@ impl crate::FileFormat {
     #[inline]
     pub(crate) fn from_generic_reader<R: Read + Seek>(
         #[allow(unused_variables)] reader: R,
-    ) -> (Self, crate::DetectionMethod, crate::Confidence) {
+    ) -> Self {
         #[cfg(feature = "reader-txt")]
         {
-            match Self::from_txt_reader(reader) {
-                Ok(fmt) => (fmt, crate::DetectionMethod::Text, crate::Confidence::Medium),
-                Err(_) => (
-                    Self::default(),
-                    crate::DetectionMethod::Default,
-                    crate::Confidence::Low,
-                ),
-            }
+            Self::from_txt_reader(reader).unwrap_or_default()
         }
         #[cfg(not(feature = "reader-txt"))]
         {
-            (
-                Self::default(),
-                crate::DetectionMethod::Default,
-                crate::Confidence::Low,
-            )
+            Self::default()
         }
     }
 

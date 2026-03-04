@@ -32,7 +32,6 @@ macro_rules! formats {
         /// [`media_type`](Self::media_type), [`extension`](Self::extension), and
         /// [`kind`](Self::kind).
         #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[non_exhaustive]
         pub enum FileFormat {
             $(
@@ -157,25 +156,6 @@ macro_rules! formats {
                 }
             }
 
-            /// Returns a slice containing every [`FileFormat`](crate::FileFormat) variant.
-            ///
-            /// # Examples
-            ///
-            /// Basic usage:
-            ///
-            /// ```
-            /// use file_format::FileFormat;
-            ///
-            /// let all = FileFormat::all();
-            /// assert!(all.contains(&FileFormat::Zip));
-            ///```
-            pub fn all() -> &'static [crate::FileFormat] {
-                static ALL: &[crate::FileFormat] = &[
-                    $(crate::FileFormat::$format,)*
-                ];
-                ALL
-            }
-
             /// Returns all file formats of the given [`Kind`](crate::Kind).
             ///
             /// # Examples
@@ -203,33 +183,6 @@ macro_rules! formats {
                 .get(&kind)
                 .map(Vec::as_slice)
                 .unwrap_or_default()
-            }
-
-            /// Looks up a [`FileFormat`](crate::FileFormat) by its full name.
-            ///
-            /// # Examples
-            ///
-            /// Basic usage:
-            ///
-            /// ```
-            /// use file_format::{FileFormat, Kind};
-            ///
-            /// let fmt = FileFormat::Mpeg12AudioLayer3;
-            /// assert_eq!(fmt.name(), "MPEG-1/2 Audio Layer 3");
-            /// assert_eq!(FileFormat::from_name(fmt.name()), Some(fmt));
-            /// ```
-            pub fn from_name(name: &str) -> Option<crate::FileFormat> {
-                static NAME: std::sync::OnceLock<std::collections::HashMap<&str, crate::FileFormat>> =
-                    std::sync::OnceLock::new();
-                NAME.get_or_init(|| -> std::collections::HashMap<&str, crate::FileFormat> {
-                    let mut map = std::collections::HashMap::new();
-                    $(
-                        map.insert($name, Self::$format);
-                    )*
-                    map
-                })
-                .get(name)
-                .cloned()
             }
 
             /// Returns all file formats that use the given file extension.
