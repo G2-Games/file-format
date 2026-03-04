@@ -261,10 +261,14 @@ signatures! {
     value = b"\xEF\xBB\xBF<!DOCTYPE html"
     value = b"\xEF\xBB\xBF<!doctype HTML"
     value = b"\xEF\xBB\xBF<!doctype html"
+    value = b"\xEF\xBB\xBF<html"
+    value = b"\xEF\xBB\xBF<HTML"
     value = b"<!DOCTYPE HTML"
     value = b"<!DOCTYPE html"
     value = b"<!doctype HTML"
     value = b"<!doctype html"
+    value = b"<html"
+    value = b"<HTML"
 
     format = PolygonAscii
     value = b"ply\r\nformat ascii"
