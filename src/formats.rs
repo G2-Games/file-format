@@ -2061,7 +2061,7 @@ formats! {
     name = "OpenXPS"
     short_name = "OXPS"
     media_type = "application/oxps"
-    extension = "xps"
+    extension = "oxps"
     kind = Document
 
     format = OptimizedDalvikExecutable
@@ -2268,7 +2268,7 @@ formats! {
 
     format = PythonScript
     name = "Python Script"
-    media_type = "text/x-script.python"
+    media_type = "text/x-python"
     extension = "py"
     kind = Other
 
@@ -2435,7 +2435,7 @@ formats! {
     name = "Silicon Graphics Movie"
     short_name = "SGI"
     media_type = "video/x-sgi-movie"
-    extension = "sgi"
+    extension = "movie"
     kind = Video
 
     format = SimpleObjectAccessProtocol
@@ -2540,7 +2540,7 @@ formats! {
     kind = Database
 
     format = Squashfs
-    name = "Squashfs"
+    name = "squashfs"
     media_type = "application/x-squashfs"
     extension = "sqsh"
     kind = Archive
@@ -2770,7 +2770,7 @@ formats! {
 
     format = ToolCommandLanguageScript
     name = "Tool Command Language Script"
-    short_name = "Tcl Script"
+    short_name = "Tcl"
     media_type = "text/x-tcl"
     extension = "tcl"
     kind = Other
@@ -2861,14 +2861,13 @@ formats! {
 
     format = UnixArchiver
     name = "UNIX archiver"
-    short_name = "archiver"
+    short_name = "ar"
     media_type = "application/x-archive"
     extension = "a"
     kind = Archive
 
     format = UnixCompress
     name = "UNIX compress"
-    short_name = "compress"
     media_type = "application/x-compress"
     extension = "Z"
     kind = Compressed
@@ -3007,7 +3006,7 @@ formats! {
     format = WindowsCursor
     name = "Windows Cursor"
     short_name = "CUR"
-    media_type = "image/x-icon"
+    media_type = "image/x-win-bitmap"
     extension = "cur"
     kind = Image
 

@@ -16,6 +16,17 @@
 - Arithmetic in readers is now safe: `u64` to `i64` conversions use `try_from`, subtractions use
   `checked_sub`, and MP4 `size == 0` boxes are handled per spec
 
+## Fixes
+
+- Fix `ToolCommandLanguageScript` short name from "Tcl Script" to "Tcl"
+- Fix `SiliconGraphicsMovie` extension from "sgi" to "movie"
+- Fix `Squashfs` name from "Squashfs" to "squashfs"
+- Fix `PythonScript` media type from "text/x-script.python" to "text/x-python"
+- Fix `WindowsCursor` media type from "image/x-icon" to "image/x-win-bitmap"
+- Fix `UnixArchiver` short name from "archiver" to "ar"
+- Remove `UnixCompress` short name (not a distinct abbreviation)
+- Fix `Openxps` extension from "xps" to "oxps"
+
 ## New formats support
 
 - Sony Alpha Raw (ARW)
