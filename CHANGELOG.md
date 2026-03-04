@@ -7,9 +7,6 @@
   case-insensitive, leading `.` stripped automatically)
 - Add `FileFormat::from_media_type` method to retrieve all file formats for a given media type (
   case-insensitive)
-- Add `FromStr` implementation for `FileFormat` to parse canonical variant names (e.g. `"Zip"`,
-  `"PortableDocumentFormat"`)
-- Add `ParseFileFormatError` error type for `FromStr`
 - Add `Hash`, `Ord`, and `PartialOrd` derives to `FileFormat` and `Kind`
 
 ## Improvements

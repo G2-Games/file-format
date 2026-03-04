@@ -263,24 +263,6 @@ macro_rules! formats {
             }
         }
 
-        impl std::str::FromStr for crate::FileFormat {
-            type Err = crate::ParseFileFormatError;
-
-            fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-                static VARIANTS: std::sync::OnceLock<std::collections::HashMap<&'static str, crate::FileFormat>> =
-                    std::sync::OnceLock::new();
-                VARIANTS.get_or_init(|| {
-                    let mut map = std::collections::HashMap::new();
-                    $(
-                        map.insert(stringify!($format), crate::FileFormat::$format);
-                    )*
-                    map
-                })
-                .get(s)
-                .copied()
-                .ok_or(crate::ParseFileFormatError)
-            }
-        }
     };
 }
 

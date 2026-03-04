@@ -259,20 +259,6 @@ use std::{
 
 pub use formats::FileFormat;
 
-/// Error returned when parsing a [`FileFormat`] from a string fails.
-///
-/// See [`FileFormat::from_str`](std::str::FromStr::from_str).
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ParseFileFormatError;
-
-impl Display for ParseFileFormatError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("unknown file format variant")
-    }
-}
-
-impl std::error::Error for ParseFileFormatError {}
-
 impl FileFormat {
     /// Determines the file format from bytes.
     ///
