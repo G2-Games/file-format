@@ -10,13 +10,6 @@ readers when available for accurate identification. If the signature is not reco
 falls back to the [default](`FileFormat::default`) file format, which is
 [Arbitrary Binary Data (BIN)](`FileFormat::ArbitraryBinaryData`).
 
-# Highlights
-
-- **Extensive coverage** — supports 500+ file formats across 20+ categories.
-- **Multi-layered detection** — combines magic-byte signature matching, format-specific deep
-  readers, and text heuristics for accurate identification.
-- **Safe and lightweight** — `#![forbid(unsafe_code)]` with zero dependencies by default.
-
 # Examples
 
 Determines from a file:
