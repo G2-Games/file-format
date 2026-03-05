@@ -205,22 +205,20 @@ macro_rules! formats {
             /// assert_eq!(FileFormat::from_extension(".JPG"), FileFormat::from_extension("jpg"));
             ///```
             pub fn from_extension(extension: &str) -> &'static [crate::FileFormat] {
-                static EXTENSION: std::sync::OnceLock<std::collections::HashMap<String, &'static [crate::FileFormat]>> =
+                static EXTENSION: std::sync::OnceLock<std::collections::HashMap<String, Vec<crate::FileFormat>>> =
                     std::sync::OnceLock::new();
                 let extension = extension.strip_prefix('.').unwrap_or(extension);
                 let lower = extension.to_ascii_lowercase();
-                EXTENSION.get_or_init(|| -> std::collections::HashMap<String, &'static [crate::FileFormat]> {
+                EXTENSION.get_or_init(|| {
                     let mut map: std::collections::HashMap<String, Vec<crate::FileFormat>> =
                         std::collections::HashMap::new();
                     $(
                         map.entry($extension.to_ascii_lowercase()).or_default().push(Self::$format);
                     )*
-                    map.into_iter()
-                        .map(|(k, v)| (k, Box::leak(v.into_boxed_slice()) as &'static [crate::FileFormat]))
-                        .collect()
+                    map
                 })
                 .get(&lower)
-                .copied()
+                .map(Vec::as_slice)
                 .unwrap_or_default()
             }
 
@@ -244,21 +242,19 @@ macro_rules! formats {
             /// assert_eq!(FileFormat::from_media_type("IMAGE/JPEG"), FileFormat::from_media_type("image/jpeg"));
             ///```
             pub fn from_media_type(media_type: &str) -> &'static [crate::FileFormat] {
-                static MEDIA_TYPE: std::sync::OnceLock<std::collections::HashMap<&str, &'static [crate::FileFormat]>> =
+                static MEDIA_TYPE: std::sync::OnceLock<std::collections::HashMap<&str, Vec<crate::FileFormat>>> =
                     std::sync::OnceLock::new();
                 let lower = media_type.to_ascii_lowercase();
-                MEDIA_TYPE.get_or_init(|| -> std::collections::HashMap<&str, &'static [crate::FileFormat]> {
+                MEDIA_TYPE.get_or_init(|| {
                     let mut map: std::collections::HashMap<&str, Vec<crate::FileFormat>> =
                         std::collections::HashMap::new();
                     $(
                         map.entry($media_type).or_default().push(Self::$format);
                     )*
-                    map.into_iter()
-                        .map(|(k, v)| (k, Box::leak(v.into_boxed_slice()) as &'static [crate::FileFormat]))
-                        .collect()
+                    map
                 })
                 .get(lower.as_str())
-                .copied()
+                .map(Vec::as_slice)
                 .unwrap_or_default()
             }
         }
