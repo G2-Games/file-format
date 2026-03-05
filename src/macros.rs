@@ -189,7 +189,7 @@ macro_rules! formats {
             ///
             /// The lookup is case-insensitive and a leading `.` is stripped automatically.
             ///
-            /// Multiple file formats can share the same extension, so this returns a `Vec`.
+            /// Multiple file formats can share the same extension, so this returns a slice.
             ///
             /// # Examples
             ///
@@ -226,7 +226,7 @@ macro_rules! formats {
             ///
             /// The lookup is case-insensitive.
             ///
-            /// Multiple file formats can share the same media type, so this returns a `Vec`.
+            /// Multiple file formats can share the same media type, so this returns a slice.
             ///
             /// # Examples
             ///

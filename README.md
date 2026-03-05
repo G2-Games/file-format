@@ -60,15 +60,6 @@ let formats = FileFormat::from_kind(Kind::Image);
 assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
 ```
 
-Parses from variant name:
-
-```rust
-use file_format::FileFormat;
-
-let fmt: FileFormat = "Zip".parse()?;
-assert_eq!(fmt, FileFormat::Zip);
-```
-
 ## Usage
 
 Add this to your `Cargo.toml`:
