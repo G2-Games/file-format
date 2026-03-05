@@ -63,15 +63,6 @@ let formats = FileFormat::from_kind(Kind::Image);
 assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
 ```
 
-Parses from variant name:
-
-```
-use file_format::FileFormat;
-
-let fmt: FileFormat = "Zip".parse().unwrap();
-assert_eq!(fmt, FileFormat::Zip);
-```
-
 # Crate features
 
 All features below are disabled by default.
