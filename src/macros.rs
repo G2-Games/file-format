@@ -116,7 +116,7 @@ macro_rules! formats {
 
             /// Returns the common file extension of the file format (without the leading dot).
             ///
-            /// This value is never empty.
+            /// Note: this value is never empty.
             ///
             /// # Examples
             ///
