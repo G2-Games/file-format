@@ -41,6 +41,21 @@ assert_eq!(fmt.extension(), "jpg");
 assert_eq!(fmt.kind(), Kind::Image);
 ```
 
+Retrieves file formats by extension, media type, or kind:
+
+```
+use file_format::{FileFormat, Kind};
+
+let formats = FileFormat::from_extension("jpg");
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let formats = FileFormat::from_media_type("image/jpeg");
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let formats = FileFormat::from_kind(Kind::Image);
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+```
+
 # Crate features
 
 All features below are disabled by default.
@@ -149,7 +164,7 @@ identification.
   * [Universal Subtitle Format (USF)](`FileFormat::UniversalSubtitleFormat`)
   * [XML Localization Interchange File Format (XLIFF)](`FileFormat::XmlLocalizationInterchangeFileFormat`)
   * [XML Shareable Playlist Format (XSPF)](`FileFormat::XmlShareablePlaylistFormat`)
-  * [draw.io (DRAWIO)](`FileFormat::Drawio`)
+  * [draw.io (DRAWIO)](`FileFormat::DrawIo`)
 - `reader-zip` - Enables [ZIP](`FileFormat::Zip`)-based file formats detection.
   * [3D Manufacturing Format (3MF)](`FileFormat::ThreeDimensionalManufacturingFormat`)
   * [Adobe Integrated Runtime (AIR)](`FileFormat::AdobeIntegratedRuntime`)
@@ -229,7 +244,7 @@ use std::{
 pub use formats::FileFormat;
 
 impl FileFormat {
-    /// Determines file format from bytes.
+    /// Determines the file format from bytes.
     ///
     /// # Examples
     ///
@@ -251,14 +266,15 @@ impl FileFormat {
     /// let fmt = FileFormat::from_bytes(&[0; 1000]);
     /// assert_eq!(fmt, FileFormat::ArbitraryBinaryData);
     ///```
-    ///
-    /// [default value]: FileFormat::default
     #[inline]
     pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Self {
         Self::from(bytes.as_ref())
     }
 
-    /// Determines file format from a file.
+    /// Determines the file format from a file.
+    ///
+    /// This method opens the file at the given path and reads its entire contents into memory
+    /// for detection.
     ///
     /// # Examples
     ///
@@ -276,7 +292,10 @@ impl FileFormat {
         Self::from_reader(File::open(path)?)
     }
 
-    /// Determines file format from a reader.
+    /// Determines the file format from a reader.
+    ///
+    /// The reader must implement both [`Read`] and [`Seek`] so the detection logic can read
+    /// the initial bytes and then rewind for format-specific deep readers.
     ///
     /// # Examples
     ///
@@ -290,11 +309,15 @@ impl FileFormat {
     /// # Ok::<(), std::io::Error>(())
     ///```
     pub fn from_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
-        // Creates and fills a buffer.
-        let mut buf = [0; 36_870];
-        let nread = reader.read(&mut buf)?;
+        let mut buf = vec![0u8; Self::SIGNATURE_MAX_LEN];
+        let mut nread = 0;
+        while nread < buf.len() {
+            match reader.read(&mut buf[nread..])? {
+                0 => break,
+                n => nread += n,
+            }
+        }
 
-        // Determines file format.
         Ok(if nread == 0 {
             Self::Empty
         } else if let Some(fmt) = Self::from_signature(&buf[..nread]) {
@@ -329,8 +352,13 @@ impl From<&[u8]> for FileFormat {
     }
 }
 
-/// A kind of file format.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// The broad category a [`FileFormat`] belongs to.
+///
+/// Every file format is classified into exactly one kind, such as [`Image`](Kind::Image),
+/// [`Audio`](Kind::Audio), [`Document`](Kind::Document), and so on. Use
+/// [`FileFormat::kind`] to retrieve it, or [`FileFormat::from_kind`] to list all formats
+/// in a given category.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
 pub enum Kind {
     /// Files and directories stored in a single, possibly compressed, archive.

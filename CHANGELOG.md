@@ -1,3 +1,36 @@
+# Version 0.29.0 (2026-03-27)
+
+## API
+
+- Add `FileFormat::from_kind` method to retrieve all file formats of a given `Kind`
+- Add `FileFormat::from_extension` method to retrieve all file formats for a given extension (
+  case-insensitive, leading `.` stripped automatically)
+- Add `FileFormat::from_media_type` method to retrieve all file formats for a given media type (
+  case-insensitive)
+- Add `Hash`, `Ord`, and `PartialOrd` derives to `FileFormat` and `Kind`
+
+## Improvements
+
+- Signature buffer size is now computed at compile time from the signatures (`SIGNATURE_MAX_LEN`)
+  instead of being hardcoded
+- Arithmetic in readers is now safe: `u64` to `i64` conversions use `try_from`, subtractions use
+  `checked_sub`, and MP4 `size == 0` boxes are handled per spec
+
+## Fixes
+
+- Fix `ToolCommandLanguageScript` short name from "Tcl Script" to "Tcl"
+- Fix `SiliconGraphicsMovie` extension from "sgi" to "movie"
+- Fix `Squashfs` name from "Squashfs" to "squashfs"
+- Fix `PythonScript` media type from "text/x-script.python" to "text/x-python"
+- Fix `WindowsCursor` media type from "image/x-icon" to "image/x-win-bitmap"
+- Fix `UnixArchiver` short name from "archiver" to "ar"
+- Remove `UnixCompress` short name (not a distinct abbreviation)
+- Fix `Openxps` extension from "xps" to "oxps"
+
+## New formats support
+
+- Sony Alpha Raw (ARW)
+
 # Version 0.28.0 (2025-08-07)
 
 ## New formats support

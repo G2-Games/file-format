@@ -8,16 +8,16 @@ fn test_circuit_diagram_document() {
 }
 
 #[test]
-fn test_drawio_1() {
+fn test_draw_io_1() {
     let fmt = FileFormat::from_file("fixtures/diagram/sample1.drawio").unwrap();
-    assert_eq!(fmt, FileFormat::Drawio);
+    assert_eq!(fmt, FileFormat::DrawIo);
 }
 
 #[cfg(feature = "reader-xml")]
 #[test]
-fn test_drawio_2() {
+fn test_draw_io_2() {
     let fmt = FileFormat::from_file("fixtures/diagram/sample2.drawio").unwrap();
-    assert_eq!(fmt, FileFormat::Drawio);
+    assert_eq!(fmt, FileFormat::DrawIo);
 }
 
 #[cfg(feature = "reader-cfb")]

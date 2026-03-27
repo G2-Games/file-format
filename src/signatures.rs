@@ -1,4 +1,8 @@
-//! Definition of known file formats signatures, listed in descending order of size.
+//! Magic-byte signature definitions for all recognized file formats.
+//!
+//! Signatures are listed in descending order of byte length to ensure that longer, more specific
+//! patterns are matched first, reducing the risk of false positives. Each entry maps a byte
+//! sequence (with an optional offset) to a [`FileFormat`](crate::FileFormat) variant.
 
 signatures! {
     // 59 bytes
@@ -91,7 +95,7 @@ signatures! {
 
     // 30 bytes
     format = FlexibleImageTransportSystem
-    value =b"SIMPLE  =                    T"
+    value = b"SIMPLE  =                    T"
 
     // 29 bytes
     format = NeoGeoPocketColorRom
@@ -156,6 +160,9 @@ signatures! {
     value = b"#!/usr/bin/python"
 
     // 22 bytes
+    format = SonyAlphaRaw
+    value = b"\x49\x49\x2A\x00", b"\x08\x00\x00\x00" offset = 4, b"\xFE\x00\x04\x00\x01\x00\x00\x00\x01\x00\x00\x00" offset = 10
+
     format = CreativeVoice
     value = b"Creative Voice File\x1A\x1A\0"
 
@@ -254,10 +261,14 @@ signatures! {
     value = b"\xEF\xBB\xBF<!DOCTYPE html"
     value = b"\xEF\xBB\xBF<!doctype HTML"
     value = b"\xEF\xBB\xBF<!doctype html"
+    value = b"\xEF\xBB\xBF<html"
+    value = b"\xEF\xBB\xBF<HTML"
     value = b"<!DOCTYPE HTML"
     value = b"<!DOCTYPE html"
     value = b"<!doctype HTML"
     value = b"<!doctype html"
+    value = b"<html"
+    value = b"<HTML"
 
     format = PolygonAscii
     value = b"ply\r\nformat ascii"
@@ -431,7 +442,7 @@ signatures! {
     format = BmfontAscii
     value = b"info face="
 
-    format = Drawio
+    format = DrawIo
     value = b"\xEF\xBB\xBF<mxfile"
     value = b"<mxfile"
 
@@ -628,6 +639,7 @@ signatures! {
 
     format = Mpeg4Part14
     value = b"ftypARRI" offset = 4
+    value = b"ftypFACE" offset = 4
     value = b"ftypMSNV" offset = 4
     value = b"ftypNDAS" offset = 4
     value = b"ftypNDSC" offset = 4
@@ -656,6 +668,7 @@ signatures! {
     value = b"ftypmp42" offset = 4
     value = b"ftypmp4v" offset = 4
     value = b"ftypmp71" offset = 4
+    value = b"ftypnvr1" offset = 4
 
     format = MultipleImageNetworkGraphics
     value = b"\x8AMNG\r\n\x1A\n"
@@ -989,6 +1002,7 @@ signatures! {
 
     format = Truetype
     value = b"\x00\x01\x00\x00\x00"
+    value = b"true"
 
     format = TruetypeCollection
     value = b"ttcf\x00"
@@ -1303,6 +1317,7 @@ signatures! {
     format = Zip
     value = b"PK\x03\x04"
     value = b"PK\x05\x06"
+    value = b"PK\x30\x30"
 
     format = Zpaq
     value = b"7kSt"

@@ -367,6 +367,12 @@ fn test_sketch43() {
     assert_eq!(fmt, FileFormat::Sketch43);
 }
 
+#[test]
+fn test_sony_alpha_raw() {
+    let fmt = FileFormat::from_file("fixtures/image/sample.arw").unwrap();
+    assert_eq!(fmt, FileFormat::SonyAlphaRaw);
+}
+
 #[cfg(feature = "reader-cfb")]
 #[test]
 fn test_stardraw() {

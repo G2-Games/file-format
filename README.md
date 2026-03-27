@@ -45,13 +45,28 @@ assert_eq!(fmt.extension(), "jpg");
 assert_eq!(fmt.kind(), Kind::Image);
 ```
 
+Retrieves file formats by extension, media type, or kind:
+
+```rust
+use file_format::{FileFormat, Kind};
+
+let formats = FileFormat::from_extension("jpg");
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let formats = FileFormat::from_media_type("image/jpeg");
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+
+let formats = FileFormat::from_kind(Kind::Image);
+assert!(formats.contains(&FileFormat::JointPhotographicExpertsGroup));
+```
+
 ## Usage
 
 Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-file-format = "0.28"
+file-format = "0.29"
 ```
 
 ## Crate features
@@ -339,6 +354,7 @@ identification.
 - Silicon Graphics Image (SGI)
 - Sketch
 - Sketch 43
+- Sony Alpha Raw (ARW)
 - StarDraw (SDA)
 - Sun XML Draw (SXD)
 - Sun XML Draw Template (STD)

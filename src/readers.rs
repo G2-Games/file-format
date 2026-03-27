@@ -1,9 +1,13 @@
-//! Readers for specific file formats.
+//! Format-specific deep readers for accurate file format identification.
+//!
+//! When a file's magic-byte signature matches a container format (e.g. ZIP, CFB, EBML), these
+//! readers inspect the internal structure of the file to determine the exact format. Each reader
+//! is gated behind a corresponding `reader-*` feature flag.
 
 use std::io::*;
 
 impl crate::FileFormat {
-    /// Determines file format from the specified format reader, if any.
+    /// Dispatches to the appropriate format-specific reader based on the initial signature match.
     #[inline]
     pub(crate) fn from_fmt_reader<R: Read + Seek>(
         fmt: Self,
@@ -36,7 +40,8 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a generic reader.
+    /// Falls back to generic detection (e.g. plain-text heuristics) when no signature matched or
+    /// the format-specific reader is unavailable.
     #[inline]
     pub(crate) fn from_generic_reader<R: Read + Seek>(
         #[allow(unused_variables)] reader: R,
@@ -51,7 +56,7 @@ impl crate::FileFormat {
         }
     }
 
-    /// Determines file format from an ASF reader.
+    /// Determines the file format from an ASF reader.
     #[cfg(feature = "reader-asf")]
     pub(crate) fn from_asf_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of descriptors that can be processed by the reader.
@@ -112,7 +117,14 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Current(size as i64 - 40))?;
+                    reader.seek(SeekFrom::Current(
+                        i64::try_from(size.checked_sub(40).ok_or_else(|| {
+                            Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                        })?)
+                        .map_err(|_| {
+                            Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                        })?,
+                    ))?;
                 }
                 EXTENDED_CONTENT_DESCRIPTION_OBJECT_GUID => {
                     // Reads the content descriptors count.
@@ -139,19 +151,35 @@ impl crate::FileFormat {
                         let remaining_len = len.saturating_sub(DESCRIPTOR_NAME_LIMIT as u16);
 
                         // Reads the descriptor value length.
-                        reader.seek(SeekFrom::Current(remaining_len as i64 + 2))?;
+                        reader.seek(SeekFrom::Current(
+                            i64::try_from(remaining_len as u64 + 2).map_err(|_| {
+                                Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                            })?,
+                        ))?;
                         let len = reader.read_u16_le()?;
 
                         // Seeks to the next content descriptor.
-                        reader.seek(SeekFrom::Current(len as i64))?;
+                        reader.seek(SeekFrom::Current(i64::from(len)))?;
                     }
 
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Start(offset + size - 26))?;
+                    reader.seek(SeekFrom::Start(
+                        offset
+                            + size.checked_sub(26).ok_or_else(|| {
+                                Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                            })?,
+                    ))?;
                 }
                 _ => {
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Current(size as i64 - 24))?;
+                    reader.seek(SeekFrom::Current(
+                        i64::try_from(size.checked_sub(24).ok_or_else(|| {
+                            Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                        })?)
+                        .map_err(|_| {
+                            Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                        })?,
+                    ))?;
                 }
             }
         }
@@ -166,7 +194,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a CFB reader.
+    /// Determines the file format from a CFB reader.
     #[cfg(feature = "reader-cfb")]
     pub(crate) fn from_cfb_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Reads the major version.
@@ -260,7 +288,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from an EBML reader.
+    /// Determines the file format from an EBML reader.
     #[cfg(feature = "reader-ebml")]
     pub(crate) fn from_ebml_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of EBML elements that can be processed by the reader.
@@ -369,7 +397,9 @@ impl crate::FileFormat {
 
                     // Skips the remaining size.
                     let remaining_size = size.saturating_sub(DOC_TYPE_LIMIT as u64);
-                    reader.seek(SeekFrom::Current(remaining_size as i64))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(remaining_size).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
                 CODEC_ID_ELEMENT_ID => {
                     // Reads the Codec ID.
@@ -387,7 +417,9 @@ impl crate::FileFormat {
 
                     // Skips the remaining size.
                     let remaining_size = size.saturating_sub(CODEC_ID_LIMIT as u64);
-                    reader.seek(SeekFrom::Current(remaining_size as i64))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(remaining_size).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
                 STEREO_MODE_ELEMENT_ID => {
                     // Reads the StereoMode.
@@ -401,7 +433,9 @@ impl crate::FileFormat {
                 CLUSTER_ELEMENT_ID => break,
                 _ => {
                     // Seeks to the next element.
-                    reader.seek(SeekFrom::Current(size as i64))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(size).map_err(|_| {
+                        Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                    })?))?;
                 }
             }
 
@@ -421,7 +455,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from an EXE reader.
+    /// Determines the file format from an EXE reader.
     #[cfg(feature = "reader-exe")]
     pub(crate) fn from_exe_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Retrieves the stream length.
@@ -462,7 +496,7 @@ impl crate::FileFormat {
         Ok(Self::MsDosExecutable)
     }
 
-    /// Determines file format from an ID3v2 reader.
+    /// Determines the file format from an ID3v2 reader.
     #[cfg(feature = "reader-id3v2")]
     pub(crate) fn from_id3v2_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Loops while in ID3v2 segment.
@@ -529,7 +563,7 @@ impl crate::FileFormat {
         Ok(Self::Id3v2)
     }
 
-    /// Determines file format from a MP4 reader.
+    /// Determines the file format from an MP4 reader.
     #[cfg(feature = "reader-mp4")]
     pub(crate) fn from_mp4_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of boxes that can be processed by the reader.
@@ -561,6 +595,8 @@ impl crate::FileFormat {
             // Handles the extended box size.
             let size = if size == 1 {
                 reader.read_u64_be()?
+            } else if size == 0 {
+                len.saturating_sub(reader.stream_position()?) + 8
             } else {
                 size as u64
             };
@@ -568,7 +604,7 @@ impl crate::FileFormat {
             // Checks the box type.
             match box_type.as_slice() {
                 b"moov" | b"trak" | b"mdia" => {}
-                b"hdlr" => {
+                b"hdlr" if size >= 20 => {
                     // Reads the handler type.
                     reader.seek(SeekFrom::Current(8))?;
                     let handler_type = reader.read_bytes(4)?;
@@ -582,12 +618,17 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next box.
-                    reader.seek(SeekFrom::Current(size as i64 - 20))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(size - 20).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
-                _ => {
+                _ if size >= 8 => {
                     // Seeks to the next box.
-                    reader.seek(SeekFrom::Current(size as i64 - 8))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(size - 8).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
+                _ => break,
             }
 
             // Increments the box count.
@@ -606,7 +647,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a PDF reader.
+    /// Determines the file format from a PDF reader.
     #[cfg(feature = "reader-pdf")]
     pub(crate) fn from_pdf_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Maximum number of bytes that can be processed by the reader (32 MB).
@@ -655,7 +696,7 @@ impl crate::FileFormat {
         Ok(Self::PortableDocumentFormat)
     }
 
-    /// Determines file format from a RM reader.
+    /// Determines the file format from an RM reader.
     #[cfg(feature = "reader-rm")]
     pub(crate) fn from_rm_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of chunks that can be processed by the reader.
@@ -690,7 +731,7 @@ impl crate::FileFormat {
                 let stream_name_size = reader.read_u8()?;
 
                 // Skips the stream name.
-                reader.seek(SeekFrom::Current(stream_name_size as i64))?;
+                reader.seek(SeekFrom::Current(i64::from(stream_name_size)))?;
 
                 // Reads the size of stream mime type.
                 let mime_type_size = reader.read_u8()?;
@@ -710,7 +751,14 @@ impl crate::FileFormat {
             }
 
             // Seeks to the next chunk.
-            reader.seek(SeekFrom::Current(chunk_size as i64 - 8))?;
+            reader.seek(SeekFrom::Current(
+                i64::try_from(
+                    (chunk_size as u64).checked_sub(8).ok_or_else(|| {
+                        Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                    })?,
+                )
+                .map_err(|_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"))?,
+            ))?;
         }
 
         // Determines the file format based on the identified streams.
@@ -723,7 +771,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a SQLite 3 reader.
+    /// Determines the file format from a SQLite 3 reader.
     #[cfg(feature = "reader-sqlite3")]
     pub(crate) fn from_sqlite3_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Marker for the Sketch file format.
@@ -745,7 +793,7 @@ impl crate::FileFormat {
         Ok(Self::Sqlite3)
     }
 
-    /// Determines file format from a TXT reader.
+    /// Determines the file format from a TXT reader.
     #[cfg(feature = "reader-txt")]
     pub(crate) fn from_txt_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of lines that can be processed by the reader.
@@ -776,7 +824,7 @@ impl crate::FileFormat {
             .map(|_| Self::PlainText)
     }
 
-    /// Determines file format from a XML reader.
+    /// Determines the file format from an XML reader.
     #[cfg(feature = "reader-xml")]
     pub(crate) fn from_xml_reader<R: Read + Seek>(mut reader: R) -> Result<Self> {
         // Rewinds to the beginning of the stream plus the size of the XML file format signature.
@@ -801,7 +849,7 @@ impl crate::FileFormat {
         } else if buf.holds("<COLLADA") {
             Self::CollaborativeDesignActivity
         } else if buf.holds("<mxfile") {
-            Self::Drawio
+            Self::DrawIo
         } else if buf.holds("<X3D") {
             Self::Extensible3d
         } else if buf.holds("<xsl") {
@@ -851,7 +899,7 @@ impl crate::FileFormat {
         })
     }
 
-    /// Determines file format from a ZIP reader.
+    /// Determines the file format from a ZIP reader.
     #[cfg(feature = "reader-zip")]
     pub(crate) fn from_zip_reader<R: Read + Seek>(reader: R) -> Result<Self> {
         // Maximum number of entries that can be processed by the reader.
@@ -991,7 +1039,7 @@ impl crate::FileFormat {
 
                     // Seeks to the data.
                     reader.seek(SeekFrom::Current(
-                        filename_len as i64 + extra_field_len as i64,
+                        i64::from(filename_len) + i64::from(extra_field_len),
                     ))?;
 
                     // Reads the data.
@@ -1091,14 +1139,14 @@ impl crate::FileFormat {
 
             // Seeks to the next central directory entry.
             reader.seek(SeekFrom::Current(
-                extra_field_len as i64 + file_comment_len as i64,
+                i64::from(extra_field_len) + i64::from(file_comment_len),
             ))?;
         }
         Ok(fmt)
     }
 }
 
-/// A trait for convenient data reading.
+/// Extension trait providing typed binary read helpers on top of [`Read`].
 #[allow(dead_code)]
 trait ReadData: Read {
     /// Reads a specified number of bytes into a `Vec<u8>`.
@@ -1180,11 +1228,10 @@ trait ReadData: Read {
     }
 }
 
-/// Allows any type `R` that implements the `Read` trait to automatically benefit from the
-/// additional methods provided by the `ReadData` trait.
+/// Blanket implementation for all [`Read`] types.
 impl<R: Read> ReadData for R {}
 
-/// A trait for finding a byte pattern within data.
+/// Extension trait for byte-pattern searching using a Boyer-Moore-Horspool algorithm.
 #[allow(dead_code)]
 trait FindBytes: AsRef<[u8]> {
     /// Searches for the specified byte pattern and returns the index of the first occurrence.
@@ -1269,6 +1316,5 @@ trait FindBytes: AsRef<[u8]> {
     }
 }
 
-/// Allows any type `B` that implements the `AsRef<[u8]>` trait to benefit from the additional
-/// methods provided by the `FindBytes` trait.
+/// Blanket implementation for all `AsRef<[u8]>` types.
 impl<B: AsRef<[u8]> + ?Sized> FindBytes for B {}

@@ -1,4 +1,79 @@
-//! Definition of file formats, listed in alphabetical order.
+//! Declarative definitions of all supported file formats, listed in alphabetical order.
+//!
+//! Each entry specifies the format's full name, optional short name, media type, common file
+//! extension, and [`Kind`](`crate::Kind`). These definitions are consumed by the [`formats!`] macro
+//! to generate the [`FileFormat`] enum and its methods.
+//!
+//! # Rules
+//!
+//! The following rules govern every entry in this file. They ensure consistency, traceability, and
+//! correctness as the database grows. Uniqueness is only guaranteed on the enum variant itself —
+//! all other fields reflect the real world as-is, collisions included.
+//!
+//! ## Variant (`format`)
+//!
+//! PascalCase flattening of the full canonical English name. Acronyms are not uppercased
+//! ([`AutocadDrawing`](`FileFormat::AutocadDrawing`), not `AutoCADDrawing`). Digits are glued to
+//! the preceding word. Brand names that start with a digit use an English word instead
+//! ([`ThirdGenerationPartnershipProject`](`FileFormat::ThirdGenerationPartnershipProject`), not
+//! `3rdGeneration…`; [`EightBitSampledVoice`](`FileFormat::EightBitSampledVoice`), not
+//! `8BitSampledVoice`). Brand-specific internal capitalization is flattened to standard
+//! PascalCase ([`MicrosoftPowerpointPresentation`](`FileFormat::MicrosoftPowerpointPresentation`),
+//! not `MicrosoftPowerPointPresentation`).
+//!
+//! ## Canonical name (`name`)
+//!
+//! The official name **exactly as the editor or specification writes it**, original casing
+//! preserved. Sources, by priority:
+//!
+//! 1. The format's own specification (RFC, ISO document, etc.).
+//! 2. The official website of the editor or project.
+//! 3. The PRONOM or Library of Congress FDD entry.
+//! 4. Dominant usage in the technical literature.
+//!
+//! ## Abbreviation (`short_name`)
+//!
+//! The most widely recognized abbreviation for the format, with the casing that is dominant in
+//! common usage. Generally uppercase when it is an acronym (`"JPEG"`, `"PNG"`, `"MKV"`), unless the
+//! prevailing convention differs (`"zstd"`, `"Avro"`).
+//!
+//! **Uniqueness is not guaranteed.** Multiple formats may share the same short name. If a format
+//! has no abbreviation distinct from its name, the field is omitted.
+//!
+//! ## Media type (`media_type`)
+//!
+//! Determined by the following priority:
+//!
+//! 1. **IANA-registered** — If a type exists in the
+//!    [IANA registry](https://www.iana.org/assignments/media-types/), it must be used.
+//! 2. **Unregistered `vnd.*`** — Type declared by the format's editor and widely adopted (e.g.
+//!    `application/vnd.android.aab`).
+//! 3. **De facto `x-*`** — Unregistered type used convergently by at least two of: libmagic/file,
+//!    Apache Tika, freedesktop shared-mime-info, or major browsers (e.g. `image/x-xcf`).
+//! 4. **Reasonable `x-*`** — If no type exists, one is constructed following the pattern
+//!    `{type}/x-{name}`, consistent with existing conventions.
+//!
+//! Never invent a type without an `x-` or `vnd.*` prefix for a format not registered with IANA.
+//!
+//! **Uniqueness is not guaranteed.** Multiple formats may share the same media type.
+//!
+//! ## Extension (`extension`)
+//!
+//! The most common extension in practice, in lowercase. Exceptions: when casing is part of the
+//! format's identity at the OS level (e.g. `.Z` for UNIX compress, `.AppImage`).
+//!
+//! **Uniqueness is not guaranteed.** Multiple formats may share the same extension.
+//!
+//! ## Category (`kind`)
+//!
+//! The [`Kind`](`crate::Kind`) represents the **primary function** of the format, not its technical
+//! implementation.
+//!
+//! One [`Kind`](`crate::Kind`) per variant. When ambiguous, the dominant usage decides. An SVG is
+//! [`Image`](crate::Kind::Image) (not [`Document`](crate::Kind::Document)), a PDF is
+//! [`Document`](crate::Kind::Document) (not [`Image`](crate::Kind::Image)), an EPUB is
+//! [`Ebook`](crate::Kind::Ebook) (not [`Archive`](crate::Kind::Archive) even though it is a
+//! [`Zip`](`FileFormat::Zip`)).
 
 formats! {
     format = Abiword
@@ -285,7 +360,7 @@ formats! {
     format = AudioVideoInterleave
     name = "Audio Video Interleave"
     short_name = "AVI"
-    media_type = "video/avi"
+    media_type = "video/x-msvideo"
     extension = "avi"
     kind = Video
 
@@ -636,7 +711,7 @@ formats! {
     extension = "dxf"
     kind = Model
 
-    format = Drawio
+    format = DrawIo
     name = "draw.io"
     short_name = "DRAWIO"
     media_type = "application/vnd.jgraph.mxfile"
@@ -680,7 +755,7 @@ formats! {
     format = EncapsulatedPostscript
     name = "Encapsulated PostScript"
     short_name = "EPS"
-    media_type = "application/eps"
+    media_type = "image/x-eps"
     extension = "eps"
     kind = Image
 
@@ -1986,7 +2061,7 @@ formats! {
     name = "OpenXPS"
     short_name = "OXPS"
     media_type = "application/oxps"
-    extension = "xps"
+    extension = "oxps"
     kind = Document
 
     format = OptimizedDalvikExecutable
@@ -2193,7 +2268,7 @@ formats! {
 
     format = PythonScript
     name = "Python Script"
-    media_type = "text/x-script.python"
+    media_type = "text/x-python"
     extension = "py"
     kind = Other
 
@@ -2360,7 +2435,7 @@ formats! {
     name = "Silicon Graphics Movie"
     short_name = "SGI"
     media_type = "video/x-sgi-movie"
-    extension = "sgi"
+    extension = "movie"
     kind = Video
 
     format = SimpleObjectAccessProtocol
@@ -2423,6 +2498,13 @@ formats! {
     extension = "sldprt"
     kind = Model
 
+    format = SonyAlphaRaw
+    name = "Sony Alpha Raw"
+    short_name = "ARW"
+    media_type = "image/x-sony-arw"
+    extension = "arw"
+    kind = Image
+
     format = SonyDsdStreamFile
     name = "Sony DSD Stream File"
     short_name = "DSF"
@@ -2458,7 +2540,7 @@ formats! {
     kind = Database
 
     format = Squashfs
-    name = "Squashfs"
+    name = "squashfs"
     media_type = "application/x-squashfs"
     extension = "sqsh"
     kind = Archive
@@ -2688,7 +2770,7 @@ formats! {
 
     format = ToolCommandLanguageScript
     name = "Tool Command Language Script"
-    short_name = "Tcl Script"
+    short_name = "Tcl"
     media_type = "text/x-tcl"
     extension = "tcl"
     kind = Other
@@ -2779,14 +2861,13 @@ formats! {
 
     format = UnixArchiver
     name = "UNIX archiver"
-    short_name = "archiver"
+    short_name = "ar"
     media_type = "application/x-archive"
     extension = "a"
     kind = Archive
 
     format = UnixCompress
     name = "UNIX compress"
-    short_name = "compress"
     media_type = "application/x-compress"
     extension = "Z"
     kind = Compressed
@@ -2925,14 +3006,14 @@ formats! {
     format = WindowsCursor
     name = "Windows Cursor"
     short_name = "CUR"
-    media_type = "image/x-icon"
+    media_type = "image/x-win-bitmap"
     extension = "cur"
     kind = Image
 
     format = WindowsIcon
     name = "Windows Icon"
     short_name = "ICO"
-    media_type = "image/x-icon"
+    media_type = "image/vnd.microsoft.icon"
     extension = "ico"
     kind = Image
 
