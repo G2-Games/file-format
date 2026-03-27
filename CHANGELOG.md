@@ -1,4 +1,4 @@
-# Version 0.29.0 (unreleased)
+# Version 0.29.0 (2026-03-27)
 
 ## API
 
