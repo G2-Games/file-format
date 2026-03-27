@@ -6,21 +6,6 @@
 
 use std::io::*;
 
-/// Converts a `u64` value to `i64`, returning an [`InvalidData`](std::io::ErrorKind::InvalidData) error on overflow.
-#[allow(dead_code)]
-#[inline]
-fn to_i64(value: u64) -> Result<i64> {
-    i64::try_from(value).map_err(|_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"))
-}
-
-/// Subtracts `b` from `a`, returning an [`InvalidData`](std::io::ErrorKind::InvalidData) error on underflow.
-#[allow(dead_code)]
-#[inline]
-fn checked_sub(a: u64, b: u64) -> Result<u64> {
-    a.checked_sub(b)
-        .ok_or_else(|| Error::new(ErrorKind::InvalidData, "arithmetic underflow"))
-}
-
 impl crate::FileFormat {
     /// Dispatches to the appropriate format-specific reader based on the initial signature match.
     #[inline]
@@ -132,7 +117,14 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Current(to_i64(checked_sub(size, 40)?)?))?;
+                    reader.seek(SeekFrom::Current(
+                        i64::try_from(size.checked_sub(40).ok_or_else(|| {
+                            Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                        })?)
+                        .map_err(|_| {
+                            Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                        })?,
+                    ))?;
                 }
                 EXTENDED_CONTENT_DESCRIPTION_OBJECT_GUID => {
                     // Reads the content descriptors count.
@@ -159,7 +151,11 @@ impl crate::FileFormat {
                         let remaining_len = len.saturating_sub(DESCRIPTOR_NAME_LIMIT as u16);
 
                         // Reads the descriptor value length.
-                        reader.seek(SeekFrom::Current(to_i64(remaining_len as u64 + 2)?))?;
+                        reader.seek(SeekFrom::Current(
+                            i64::try_from(remaining_len as u64 + 2).map_err(|_| {
+                                Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                            })?,
+                        ))?;
                         let len = reader.read_u16_le()?;
 
                         // Seeks to the next content descriptor.
@@ -167,11 +163,23 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Start(offset + checked_sub(size, 26)?))?;
+                    reader.seek(SeekFrom::Start(
+                        offset
+                            + size.checked_sub(26).ok_or_else(|| {
+                                Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                            })?,
+                    ))?;
                 }
                 _ => {
                     // Seeks to the next object.
-                    reader.seek(SeekFrom::Current(to_i64(checked_sub(size, 24)?)?))?;
+                    reader.seek(SeekFrom::Current(
+                        i64::try_from(size.checked_sub(24).ok_or_else(|| {
+                            Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                        })?)
+                        .map_err(|_| {
+                            Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                        })?,
+                    ))?;
                 }
             }
         }
@@ -389,7 +397,9 @@ impl crate::FileFormat {
 
                     // Skips the remaining size.
                     let remaining_size = size.saturating_sub(DOC_TYPE_LIMIT as u64);
-                    reader.seek(SeekFrom::Current(to_i64(remaining_size)?))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(remaining_size).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
                 CODEC_ID_ELEMENT_ID => {
                     // Reads the Codec ID.
@@ -407,7 +417,9 @@ impl crate::FileFormat {
 
                     // Skips the remaining size.
                     let remaining_size = size.saturating_sub(CODEC_ID_LIMIT as u64);
-                    reader.seek(SeekFrom::Current(to_i64(remaining_size)?))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(remaining_size).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
                 STEREO_MODE_ELEMENT_ID => {
                     // Reads the StereoMode.
@@ -421,7 +433,9 @@ impl crate::FileFormat {
                 CLUSTER_ELEMENT_ID => break,
                 _ => {
                     // Seeks to the next element.
-                    reader.seek(SeekFrom::Current(to_i64(size)?))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(size).map_err(|_| {
+                        Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX")
+                    })?))?;
                 }
             }
 
@@ -604,11 +618,15 @@ impl crate::FileFormat {
                     }
 
                     // Seeks to the next box.
-                    reader.seek(SeekFrom::Current(to_i64(size - 20)?))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(size - 20).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
                 _ if size >= 8 => {
                     // Seeks to the next box.
-                    reader.seek(SeekFrom::Current(to_i64(size - 8)?))?;
+                    reader.seek(SeekFrom::Current(i64::try_from(size - 8).map_err(
+                        |_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"),
+                    )?))?;
                 }
                 _ => break,
             }
@@ -733,10 +751,14 @@ impl crate::FileFormat {
             }
 
             // Seeks to the next chunk.
-            reader.seek(SeekFrom::Current(to_i64(checked_sub(
-                chunk_size as u64,
-                8,
-            )?)?))?;
+            reader.seek(SeekFrom::Current(
+                i64::try_from(
+                    (chunk_size as u64).checked_sub(8).ok_or_else(|| {
+                        Error::new(ErrorKind::InvalidData, "arithmetic underflow")
+                    })?,
+                )
+                .map_err(|_| Error::new(ErrorKind::InvalidData, "value exceeds i64::MAX"))?,
+            ))?;
         }
 
         // Determines the file format based on the identified streams.
